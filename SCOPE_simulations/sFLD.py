@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import spectral.io.aviris as aviris
 from spectral import *
 
-def get_simualted_spectral_df(file_pathname):
+def get_simulated_spectral_df(file_pathname):
     """ Takes output spectral file from SCOPE model and transforms it to a df
         with wavelength values as column headers
 
@@ -43,7 +43,7 @@ def average_simulations(df):
     return(np.asarray(means))
 
 
-def plot_o2a_band(e_spectra_df, l_spectra_df, wavelengths, e_directional = False):
+def plot_o2a_band(e_spectra, l_spectra, wavelengths = np.arange(400, 2562)):
     """ Plots the O2A band of the average E and L spectra
 
     Parameters
@@ -56,11 +56,7 @@ def plot_o2a_band(e_spectra_df, l_spectra_df, wavelengths, e_directional = False
         np array containing wavelengths that spectra are generated over
     """
     
-    e_spectra = average_simulations(e_spectra_df)
-    l_spectra = average_simulations(l_spectra_df)
-    
-    if e_directional == False:
-        e_spectra = e_spectra / np.pi
+    e_spectra = e_spectra / np.pi # convert to same units
     
     # plot the average spectral values as a function of the wavelengths
     plt.plot(wavelengths, e_spectra, label = 'E / pi')
@@ -68,6 +64,7 @@ def plot_o2a_band(e_spectra_df, l_spectra_df, wavelengths, e_directional = False
     plt.xlim(750, 780) # plot the O2A band
     plt.xlabel('Wavelength (nm)')
     plt.ylabel(' Radiance (W m-2 um-1 sr-1)')
+    plt.title('O2A Absorption Band')
     plt.legend()
     plt.show()
     return()
@@ -116,7 +113,7 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return(idx)
 
-def sFLD(e_spectra, l_spectra, wavelengths, e_directional, O2A_band = True):
+def sFLD(e_spectra, l_spectra, wavelengths, O2A_band = True):
     """Applies the sFLD algorithm for SIF retrieval at either the O2A or O2B absorption band
 
     Parameters
@@ -127,14 +124,13 @@ def sFLD(e_spectra, l_spectra, wavelengths, e_directional, O2A_band = True):
         np array containing the upwelling radiance values at the wavelengths provided
     wavelengths : np.array
         np array containing the wavelengths at which the E and L spectra are sampled at
-    e_directional : bool, optional
-        Determines whether the E value is directional (i.e. if directional units are W m-2 um-1 sr-1), by default True
+    e_directional : bool
+        Determines whether the E value is directional (i.e. if directional units are W m-2 um-1 sr-1)
     O2A_band : bool, optional
         Determines if the target retrieval band is the O2A absorption band, by default True
     """
     
-    if e_directional == False:
-        e_spectra = e_spectra / np.pi
+    e_spectra = e_spectra / np.pi
     
     
     # O2A 760
@@ -156,37 +152,56 @@ def sFLD(e_spectra, l_spectra, wavelengths, e_directional, O2A_band = True):
     
     # define spectral regions (index begins at 400 nm)
     if O2A_band == True:
-        e_spectra = e_spectra[e_o2a_left_index:e_o2a_right_index]
-        l_spectra = l_spectra[l_o2a_left_index:l_o2a_right_index]
+        e_spectra_range = e_spectra[e_o2a_left_index:e_o2a_right_index]
+        l_spectra_range = l_spectra[l_o2a_left_index:l_o2a_right_index]
     if O2A_band == False:
-        e_spectra = e_spectra[e_o2b_left_index:e_o2b_right_index]
-        l_spectra = l_spectra[l_o2b_left_index:l_o2b_right_index]
+        e_spectra_range = e_spectra[e_o2b_left_index:e_o2b_right_index]
+        l_spectra_range = l_spectra[l_o2b_left_index:l_o2b_right_index]
     
     # look for minima in spectral region
     
-    e_argmin = np.argmin(e_spectra)
-    l_argmin = np.argmin(l_spectra)
+    e_argmin = np.argmin(e_spectra_range)
+    l_argmin = np.argmin(l_spectra_range)
     
     
     # get this value for both
     
-    e_in = e_spectra[e_argmin]
-    l_in = l_spectra[l_argmin]
+    e_in = e_spectra_range[e_argmin]
+    l_in = l_spectra_range[l_argmin]
     
     
     # look to left of this region for shoulder maxima
     
-    e_left_shoulder = e_spectra[:e_argmin]
-    l_left_shoulder = l_spectra[:l_argmin]
+    e_left_shoulder = e_spectra_range[:e_argmin]
+    l_left_shoulder = l_spectra_range[:l_argmin]
     
-
+    # look for maxima at left shoulder
+    
+    e_argmax = np.argmax(e_left_shoulder)
+    l_argmax = np.argmax(l_left_shoulder)
+    
     # get max from left shoulder
-    e_out = e_left_shoulder[np.argmax(e_left_shoulder)]
-    l_out = l_left_shoulder[np.argmax(l_left_shoulder)]
+    e_out = e_left_shoulder[e_argmax]
+    l_out = l_left_shoulder[l_argmax]
     
     # combine in equation
     
     fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
+    
+    # plot points selected
+    
+    #plt.scatter(e_argmin + 750, e_in)
+    plt.plot(wavelengths[e_o2a_left_index:e_o2a_right_index] ,e_spectra[e_o2a_left_index:e_o2a_right_index], color = 'orange')
+    plt.plot(wavelengths[l_o2a_left_index:l_o2a_right_index] ,l_spectra[l_o2a_left_index:l_o2a_right_index], color = 'b')
+    plt.scatter(wavelengths[e_argmin + e_o2a_left_index], e_in, color = 'orange', label = 'E_in')
+    plt.scatter(wavelengths[e_argmax + e_o2a_left_index], e_out, color = 'orange', label = 'E_out')
+    plt.scatter(wavelengths[l_argmin + l_o2a_left_index], l_in, color = 'b', label = 'L_in')
+    plt.scatter(wavelengths[l_argmax + l_o2a_left_index], l_out, color = 'b', label = 'L_out')
+    plt.title('sFLD SIF Retrieval Method')
+    plt.xlabel('Wavelengths (nm')
+    plt.ylabel('Radiance (W m-2 um-1 sr-1)')
+    plt.legend()
+    plt.show()
     
     return(fluorescence)
 
@@ -209,8 +224,8 @@ def get_fluorescence(e_pathname, l_pathname, fwhm = 3.5, plot = True):
     """
     
     # convert csv to dataframes
-    e_spectra = get_simualted_spectral_df(e_pathname)
-    l_spectra = get_simualted_spectral_df(l_pathname)
+    e_spectra = get_simulated_spectral_df(e_pathname)
+    l_spectra = get_simulated_spectral_df(l_pathname)
     
     # get average values
     e_average = average_simulations(e_spectra)
@@ -219,7 +234,7 @@ def get_fluorescence(e_pathname, l_pathname, fwhm = 3.5, plot = True):
     # plot average values at O2A absorption band
     
     if plot == True:
-        plot_o2a_band(e_spectra, l_spectra, np.arange(400, 2562))
+        plot_o2a_band(e_average, l_average, np.arange(400, 2562))
     
     # resample the wavelengths at desired FWHM
     e_resampled, re_wave = resample_spectra(fwhm, e_average)
@@ -227,7 +242,7 @@ def get_fluorescence(e_pathname, l_pathname, fwhm = 3.5, plot = True):
     
     # apply sFLD method
     
-    fluorescence = sFLD(e_resampled, l_resampled, re_wave, e_directional = False)
+    fluorescence = sFLD(e_resampled, l_resampled, re_wave)
     
     return(fluorescence)
     
@@ -239,35 +254,47 @@ def get_fluorescence(e_pathname, l_pathname, fwhm = 3.5, plot = True):
 
 # test
 
+
 # get spectra files
-e_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Eout_spectrum.csv"
+e_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Esun.csv"
 l_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Lo_spectrum_inclF.csv"
 
-"""
-e_spectra = get_simualted_spectral_df(e_pathname)
-l_spectra = get_simualted_spectral_df(l_pathname)
-print(e_spectra.head())
-print(l_spectra.head())
+
+'''
+e_spectra = get_simulated_spectral_df(e_pathname)
+l_spectra = get_simulated_spectral_df(l_pathname)
+
+#print(e_spectra.head())
+#print(l_spectra.head())
 
 # get averages
 e_average = average_simulations(e_spectra)
 l_average = average_simulations(l_spectra)
 
-print(e_average)
-print(l_average)
+#print(e_average)
+#print(l_average)
+
 
 # plot average values
-plot_o2a_band(e_spectra, l_spectra, np.arange(400, 2562))
+plot_o2a_band(e_average, l_average)
+
 
 # resample
 e_resampled, re_wave = resample_spectra(3.5, e_average)
 l_resampled = resample_spectra(3.5, l_average)[0]
-print(l_resampled)
+#print(len(l_resampled))
+
+plt.plot(re_wave, e_resampled / np.pi, label = 'E / pi')
+plt.plot(re_wave, l_resampled, label = 'L')
+plt.title('Resampled Spectral Data')
+plt.xlim(750, 775)
+plt.legend()
+plt.show()
 
 # sFLD test
-
+sFLD(e_resampled, l_resampled, re_wave)
 fluorescence = sFLD(e_resampled, l_resampled, re_wave)
 print(fluorescence)
-"""
 
+'''
 print(get_fluorescence(e_pathname, l_pathname))
