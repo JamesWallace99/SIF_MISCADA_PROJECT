@@ -43,7 +43,7 @@ def average_simulations(df):
     return(np.asarray(means))
 
 
-def plot_o2a_band(e_spectra_df, l_spectra_df, wavelengths):
+def plot_o2a_band(e_spectra_df, l_spectra_df, wavelengths, e_directional = False):
     """ Plots the O2A band of the average E and L spectra
 
     Parameters
@@ -56,9 +56,15 @@ def plot_o2a_band(e_spectra_df, l_spectra_df, wavelengths):
         np array containing wavelengths that spectra are generated over
     """
     
+    e_spectra = average_simulations(e_spectra_df)
+    l_spectra = average_simulations(l_spectra_df)
+    
+    if e_directional == False:
+        e_spectra = e_spectra / np.pi
+    
     # plot the average spectral values as a function of the wavelengths
-    plt.plot(wavelengths, average_simulations(e_spectra_df), label = 'E / pi')
-    plt.plot(wavelengths, average_simulations(l_spectra_df), label = 'L')
+    plt.plot(wavelengths, e_spectra, label = 'E / pi')
+    plt.plot(wavelengths, l_spectra, label = 'L')
     plt.xlim(750, 780) # plot the O2A band
     plt.xlabel('Wavelength (nm)')
     plt.ylabel(' Radiance (W m-2 um-1 sr-1)')
@@ -110,7 +116,7 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return(idx)
 
-def sFLD(e_spectra, l_spectra, wavelengths, e_directional = True, O2A_band = True):
+def sFLD(e_spectra, l_spectra, wavelengths, e_directional, O2A_band = True):
     """Applies the sFLD algorithm for SIF retrieval at either the O2A or O2B absorption band
 
     Parameters
@@ -128,7 +134,8 @@ def sFLD(e_spectra, l_spectra, wavelengths, e_directional = True, O2A_band = Tru
     """
     
     if e_directional == False:
-        e_directional = e_directional / np.pi
+        e_spectra = e_spectra / np.pi
+    
     
     # O2A 760
     # O2B 687
@@ -186,6 +193,8 @@ def sFLD(e_spectra, l_spectra, wavelengths, e_directional = True, O2A_band = Tru
 def get_fluorescence(e_pathname, l_pathname, fwhm = 3.5, plot = True):
     """ Takes the output downwelling irradiance and upwelling irradiance functions from SCOPE
     and applies the sFLD SIF retrieval algorithm.
+    From SCOPE model the E spectra is given in the output file Eout_spectrum.csv
+    From SCOPE model the L spectra is given in the output file Lo_spectrum_inclF.csv
 
     Parameters
     ----------
@@ -218,7 +227,7 @@ def get_fluorescence(e_pathname, l_pathname, fwhm = 3.5, plot = True):
     
     # apply sFLD method
     
-    fluorescence = sFLD(e_resampled, l_resampled, re_wave)
+    fluorescence = sFLD(e_resampled, l_resampled, re_wave, e_directional = False)
     
     return(fluorescence)
     
@@ -229,10 +238,12 @@ def get_fluorescence(e_pathname, l_pathname, fwhm = 3.5, plot = True):
 
 
 # test
-"""
+
 # get spectra files
-e_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Lo_spectrum.csv"
+e_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Eout_spectrum.csv"
 l_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Lo_spectrum_inclF.csv"
+
+"""
 e_spectra = get_simualted_spectral_df(e_pathname)
 l_spectra = get_simualted_spectral_df(l_pathname)
 print(e_spectra.head())
@@ -257,8 +268,6 @@ print(l_resampled)
 
 fluorescence = sFLD(e_resampled, l_resampled, re_wave)
 print(fluorescence)
-
+"""
 
 print(get_fluorescence(e_pathname, l_pathname))
-
-"""
