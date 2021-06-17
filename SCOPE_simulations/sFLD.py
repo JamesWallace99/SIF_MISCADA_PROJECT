@@ -201,9 +201,9 @@ def sFLD(e_spectra, l_spectra, wavelengths, plot, O2A_band = True):
         plt.plot(wavelengths[e_o2a_left_index:e_o2a_right_index] ,e_spectra[e_o2a_left_index:e_o2a_right_index], color = 'orange')
         plt.plot(wavelengths[l_o2a_left_index:l_o2a_right_index] ,l_spectra[l_o2a_left_index:l_o2a_right_index], color = 'b')
         plt.scatter(wavelengths[e_argmin + e_o2a_left_index], e_in, color = 'orange', label = 'E_in')
-        plt.scatter(wavelengths[e_argmax + e_o2a_left_index], e_out, color = 'orange', label = 'E_out')
+        plt.scatter(wavelengths[e_argmax + e_o2a_left_index], e_out, color = 'red', label = 'E_out')
         plt.scatter(wavelengths[l_argmin + l_o2a_left_index], l_in, color = 'b', label = 'L_in')
-        plt.scatter(wavelengths[l_argmax + l_o2a_left_index], l_out, color = 'b', label = 'L_out')
+        plt.scatter(wavelengths[l_argmax + l_o2a_left_index], l_out, color = 'green', label = 'L_out')
         plt.title('sFLD SIF Retrieval Method')
         plt.xlabel('Wavelengths (nm')
         plt.ylabel('Radiance (W m-2 um-1 sr-1)')
@@ -257,6 +257,107 @@ def get_fluorescence(e_pathname, l_pathname, plot, fwhm = 3.5):
     
 
 
+def alt_sFLD(e_spectra, l_spectra, wavelengths, plot, O2A_band = True):
+    """Applies the sFLD algorithm for SIF retrieval at either the O2A or O2B absorption band
+        Forces E_out to have the same wavelength values as L_out
+
+    Parameters
+    ----------
+    e_spectra : np.array
+        np array containing the downwelling irradiance values at the wavelengths provided
+    l_spectra : np.array
+        np array containing the upwelling radiance values at the wavelengths provided
+    wavelengths : np.array
+        np array containing the wavelengths at which the E and L spectra are sampled at
+    plot: bool
+        Determines whether plot of spectra and points choosen for sFLD will be shown
+    O2A_band : bool, optional
+        Determines if the target retrieval band is the O2A absorption band, by default True
+        
+    Outputs
+    --------
+    fluorescence: float
+        Fluorescence at the O2A absorption band retrieved using the sFLD method
+    """
+    
+    e_spectra = e_spectra / np.pi
+    
+    
+    # O2A 760
+    # O2B 687
+    
+    # look for index of value nearest 750, 775, 670 and 700
+    e_o2a_left_index = find_nearest(wavelengths, 750)
+    e_o2a_right_index = find_nearest(wavelengths, 775)
+    l_o2a_left_index = find_nearest(wavelengths, 750)
+    l_o2a_right_index = find_nearest(wavelengths, 775)
+    
+    e_o2b_left_index = find_nearest(wavelengths, 670)
+    e_o2b_right_index = find_nearest(wavelengths, 700)
+    l_o2b_left_index = find_nearest(wavelengths, 670)
+    l_o2b_right_index = find_nearest(wavelengths, 700)
+    
+    
+    
+    
+    # define spectral regions (index begins at 400 nm)
+    if O2A_band == True:
+        e_spectra_range = e_spectra[e_o2a_left_index:e_o2a_right_index]
+        l_spectra_range = l_spectra[l_o2a_left_index:l_o2a_right_index]
+    if O2A_band == False:
+        e_spectra_range = e_spectra[e_o2b_left_index:e_o2b_right_index]
+        l_spectra_range = l_spectra[l_o2b_left_index:l_o2b_right_index]
+    
+    # look for minima in spectral region
+    
+    e_argmin = np.argmin(e_spectra_range)
+    l_argmin = np.argmin(l_spectra_range)
+    
+    
+    # get this value for both
+    
+    e_in = e_spectra_range[e_argmin]
+    l_in = l_spectra_range[l_argmin]
+    
+    
+    # look to left of this region for shoulder maxima
+    
+    e_left_shoulder = e_spectra_range[:e_argmin]
+    l_left_shoulder = l_spectra_range[:l_argmin]
+    
+    # look for maxima at left shoulder
+    
+    e_argmax = np.argmax(e_left_shoulder)
+    l_argmax = np.argmax(l_left_shoulder)
+    
+    e_argmax = l_argmax
+    
+    # get max from left shoulder
+    e_out = e_left_shoulder[e_argmax]
+    l_out = l_left_shoulder[l_argmax]
+    
+    # combine in equation
+    
+    fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
+    
+    
+    if plot == True:
+        # plot points selected
+        
+        #plt.scatter(e_argmin + 750, e_in)
+        plt.plot(wavelengths[e_o2a_left_index:e_o2a_right_index] ,e_spectra[e_o2a_left_index:e_o2a_right_index], color = 'orange')
+        plt.plot(wavelengths[l_o2a_left_index:l_o2a_right_index] ,l_spectra[l_o2a_left_index:l_o2a_right_index], color = 'b')
+        plt.scatter(wavelengths[e_argmin + e_o2a_left_index], e_in, color = 'orange', label = 'E_in')
+        plt.scatter(wavelengths[e_argmax + e_o2a_left_index], e_out, color = 'red', label = 'E_out')
+        plt.scatter(wavelengths[l_argmin + l_o2a_left_index], l_in, color = 'b', label = 'L_in')
+        plt.scatter(wavelengths[l_argmax + l_o2a_left_index], l_out, color = 'green', label = 'L_out')
+        plt.title('sFLD SIF Retrieval Method')
+        plt.xlabel('Wavelengths (nm')
+        plt.ylabel('Radiance (W m-2 um-1 sr-1)')
+        plt.legend()
+        plt.show()
+    
+    return(fluorescence)
 
 
 # test
