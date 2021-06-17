@@ -14,7 +14,7 @@ def average_dataframe(df, step):
     step : int
         number of rows that will be grouped and averaged in each step
     """
-    df = e_spectra_df.groupby(np.arange(len(df))//step).mean()
+    df = df.groupby(np.arange(len(df))//step).mean()
     return(df)
 
 """ 
