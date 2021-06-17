@@ -28,3 +28,4 @@ for each row in spectra
     add the SIF to an array or new df
     compare the SIF with the actual value of the SIF at the O2A band and calculate the differce
 Find the RMSE
+"""
