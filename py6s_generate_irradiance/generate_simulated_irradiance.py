@@ -8,7 +8,7 @@ from datetime import datetime
 
 def generate_simulated_irradiance(retrieval_month, retrieval_day, retrieval_decimal_hour, retrieval_lat,
                                   retrieval_long, wavelengths_pathname,
-                                  retrieval_alt = None, retrieval_wvc = None, retrieval_vis = None, output_params = True):
+                                  retrieval_alt, retrieval_wvc, retrieval_vis = None, output_params = True):
     """Uses the Py6S wrapper to generate a simulated irradiance spectrum given a set of paramters.
         works within the Py6S conda env, saves the irradiance spectra and model parameters to csvs in same folder
 
@@ -27,10 +27,10 @@ def generate_simulated_irradiance(retrieval_month, retrieval_day, retrieval_deci
     wavelengths_pathname : str (pathname)
         pathname of csv file containing wavelengths to be generated over
         Index in first column, wavelengths in nanometers on the second column
-    retrieval_alt : float, optional
-        altitude of the retrieval, takes Py6S value by default
+    retrieval_alt : float
+        altitude of the retrieval (km)
     retrieval_wvc : float, optional
-        water apour column of the retrieval, takes Py6S value by default
+        water vapour content (g/cm^2) at the sensor
     retrieval_vis : float, optional
         visibility of retrieval, takes Py6S value by default
     """
@@ -45,6 +45,13 @@ def generate_simulated_irradiance(retrieval_month, retrieval_day, retrieval_deci
     s.geometry.gmt_decimal_hour = retrieval_decimal_hour
     s.geometry.latitude = retrieval_lat
     s.geometry.longitude = retrieval_long
+    
+    s.altitudes.set_sensor_custom_altitude(retrieval_alt, water = retrieval_wvc) # define a custom altitiude with the water vapour content
+    
+    s.atmos_profile = AtmosProfile.FromLatitudeAndDate(retrieval_lat, str(retrieval_month)) # get the atmospheric profile from a lookup table
+    
+    s.aero_profile = AeroProfile.PredefinedType(AeroProfile.Continental) # set aero profile
+    
     
     # match the simulated wavelengths with those used in the measurements
     exp_wavelengths_df = pd.read_csv(wavelengths_pathname, index_col = 'ID')
@@ -85,4 +92,4 @@ def generate_simulated_irradiance(retrieval_month, retrieval_day, retrieval_deci
 
 # test
 
-# generate_simulated_irradiance(2, 10, 10.5, -37.687798, 176.165131, '/Users/jameswallace/Desktop/Project/band_number_conversion.csv')
+generate_simulated_irradiance(2, 10, 10.5, -37.687798, 176.165131, '/Users/jameswallace/Desktop/Project/band_number_conversion.csv', 0.69, 1)
