@@ -359,6 +359,99 @@ def alt_sFLD(e_spectra, l_spectra, wavelengths, plot, O2A_band = True):
     
     return(fluorescence)
 
+def stats_on_spectra(wl, wl_start, wl_end, spectra, fun):
+    '''
+    Finds the value and index of the max or min within a given spectral range
+    
+    
+    input
+    ------
+    wl: np arrays
+    array of wavelengths
+    
+    wl_start: int
+    start value of range for wavelengths
+    
+    wl_end: int
+    end of value range for wavelengths
+    
+    spectra: np array
+    spectra to conduct stats on
+    
+    fun: str 'min' or 'max'
+    Locate the min or max of the region
+    
+    output
+    -------
+    value_index: int
+    index of the wavelength and spectra matching the target value
+    
+    value: float
+    spectra value at absorption feature
+    
+    '''
+    # get index of wavelength array value at the start of spectral range
+    # get index at wavelength array value at end of the spectral range
+    # apply the function to the input spectra sliced across the range
+    # return the value and the index
+    
+    index_start = find_nearest(wl, wl_start) - 1
+    index_end = find_nearest(wl, wl_end) + 1
+    
+    
+    if fun == 'max':
+        value_index = np.argmax(spectra[index_start:index_end]) + index_start
+    if fun == 'min':
+        value_index = np.argmin(spectra[index_start:index_end]) + index_start
+    
+    value = spectra[value_index]
+    
+    
+    return(value_index, value)
+    
+    
+def new_sFLD(e_spectra, l_spectra, wavelengths, plot=True):
+    """ final version of the sFLD algorithm
+
+    Parameters
+    ----------
+    e_spectra : np array
+        spectral array containing the incident solar radiance (directional)
+    l_spectra : np array
+        spectral array of the upwelling solar radiance
+    wavelengths : np array
+        array of the wavelength values
+    plot : bool, optional
+        produce plot of values, by default True
+    """
+    
+    buffer_in = 5
+    buffer_out = 7
+    
+    wl_in = 760
+    
+    e_in_index, e_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, e_spectra, 'min')
+    l_in_index, l_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, l_spectra, 'min')
+    e_out_index, e_out = stats_on_spectra(wavelengths, wl_in - buffer_out, wl_in + buffer_out, e_spectra, 'max')
+    l_out_index, l_out = stats_on_spectra(wavelengths, wl_in - buffer_out, wl_in + buffer_out, l_spectra, 'max')
+    
+    if plot == True:
+        plt.plot(wavelengths, e_spectra)
+        plt.plot(wavelengths, l_spectra)
+        
+        plt.scatter(wavelengths[e_in_index], e_in, label = 'e_in')
+        plt.scatter(wavelengths[l_in_index], l_in, label = 'l_in')
+        plt.scatter(wavelengths[e_out_index], e_out, label = 'e_out')
+        plt.scatter(wavelengths[l_out_index], l_out, label = 'l_out')
+        plt.legend()
+        plt.xlim(750, 775)
+    
+    
+    fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
+    
+    return(fluorescence)   
+    
+
 
 # test
 
