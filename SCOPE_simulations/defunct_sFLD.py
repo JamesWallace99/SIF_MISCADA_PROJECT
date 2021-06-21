@@ -395,9 +395,8 @@ def stats_on_spectra(wl, wl_start, wl_end, spectra, fun):
     # apply the function to the input spectra sliced across the range
     # return the value and the index
     
-    index_start = find_nearest(wl, wl_start) - 1
+    index_start = find_nearest(wl, wl_start)
     index_end = find_nearest(wl, wl_end) + 1
-    
     
     if fun == 'max':
         value_index = np.argmax(spectra[index_start:index_end]) + index_start
@@ -436,15 +435,16 @@ def new_sFLD(e_spectra, l_spectra, wavelengths, plot=True):
     l_out_index, l_out = stats_on_spectra(wavelengths, wl_in - buffer_out, wl_in + buffer_out, l_spectra, 'max')
     
     if plot == True:
-        plt.plot(wavelengths, e_spectra)
-        plt.plot(wavelengths, l_spectra)
         
+        plt.plot(wavelengths, e_spectra, color = 'orange')
+        plt.plot(wavelengths, l_spectra, color = 'blue')
         plt.scatter(wavelengths[e_in_index], e_in, label = 'e_in')
         plt.scatter(wavelengths[l_in_index], l_in, label = 'l_in')
         plt.scatter(wavelengths[e_out_index], e_out, label = 'e_out')
         plt.scatter(wavelengths[l_out_index], l_out, label = 'l_out')
-        plt.legend()
+        #plt.legend()
         plt.xlim(750, 775)
+        plt.show()
     
     
     fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
@@ -455,14 +455,12 @@ def new_sFLD(e_spectra, l_spectra, wavelengths, plot=True):
 
 # test
 
-
+'''
 # get spectra files
 e_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Esun.csv"
 l_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Lo_spectrum_inclF.csv"
 print(get_fluorescence(e_pathname, l_pathname, plot=False))
 
-
-'''
 e_spectra = get_simulated_spectral_df(e_pathname)
 l_spectra = get_simulated_spectral_df(l_pathname)
 
