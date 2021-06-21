@@ -208,7 +208,7 @@ def sFLD(e_spectra, l_spectra, wavelengths, plot=True):
     
     return(fluorescence)
 
-def three_FLD(e_spectra, l_spectra, wavelengths, plot=True):
+def three_FLD(e_spectra, l_spectra, wavelengths, buffer_out = 8, plot=True):
     """Applies the 3FLD method for SIF extraction
 
     Parameters
@@ -224,7 +224,7 @@ def three_FLD(e_spectra, l_spectra, wavelengths, plot=True):
     """
     
     buffer_in = 1
-    buffer_out = 8
+    #buffer_out = 8
     
     wl_in = 760
     
@@ -292,8 +292,7 @@ def three_FLD(e_spectra, l_spectra, wavelengths, plot=True):
     
     fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
     
-    if fluorescence < 0:
-        print('Error! Negative Fluorescence')
+
     
     return(fluorescence)
 
