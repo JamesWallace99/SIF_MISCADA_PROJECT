@@ -203,6 +203,9 @@ def sFLD(e_spectra, l_spectra, wavelengths, plot=True):
     
     fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
     
+    if fluorescence < 0:
+        print('Error! Negative Fluorescence')
+    
     return(fluorescence)
 
 def three_FLD(e_spectra, l_spectra, wavelengths, plot=True):
@@ -230,8 +233,8 @@ def three_FLD(e_spectra, l_spectra, wavelengths, plot=True):
     l_in_index, l_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, l_spectra, 'min')
     
     # get absorption shoulders
-    e_left_index, e_left = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in, e_spectra, 'max')
-    l_left_index, l_left = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in, l_spectra, 'max')
+    e_left_index, e_left = stats_on_spectra(wavelengths, wl_in - buffer_out, wl_in, e_spectra, 'max')
+    l_left_index, l_left = stats_on_spectra(wavelengths, wl_in - buffer_out, wl_in, l_spectra, 'max')
     
     e_right_index, e_right = stats_on_spectra(wavelengths, wl_in, wl_in + buffer_out, e_spectra, 'max')
     l_right_index, l_right = stats_on_spectra(wavelengths, wl_in, wl_in + buffer_out, l_spectra, 'max')
@@ -289,4 +292,31 @@ def three_FLD(e_spectra, l_spectra, wavelengths, plot=True):
     
     fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
     
+    if fluorescence < 0:
+        print('Error! Negative Fluorescence')
+    
     return(fluorescence)
+
+"""
+# test sequence
+
+# get csv pathnames
+e_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Esun.csv"
+l_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Lo_spectrum_inclF.csv"
+
+# place them into dataframes
+e_df = get_simulated_spectral_df(e_pathname)
+l_df = get_simulated_spectral_df(l_pathname)
+
+# test FLD methods
+sFLD(np.asarray(e_df.iloc[0]) /np.pi, np.asarray(l_df.iloc[0]), np.arange(400, 2562), plot = True)
+three_FLD(np.asarray(e_df.iloc[0]) /np.pi, np.asarray(l_df.iloc[0]), np.arange(400, 2562), plot = True)
+
+# resample the dataframes at 3.5 nm FWHM
+e_resampled, re_wave = resample_spectra(fwhm = 3.5, spectra = e_df.iloc[0])
+l_resampled = resample_spectra(fwhm = 3.5, spectra = l_df.iloc[0])[0]
+
+# test FLD methods on resampled spectras
+print(sFLD(e_resampled / np.pi, l_resampled, re_wave))
+print(three_FLD(e_resampled / np.pi, l_resampled, re_wave))
+"""
