@@ -23,26 +23,6 @@ def get_simulated_spectral_df(file_pathname):
     return(df)
 
 
-def average_simulations(df):
-    """
-    Calculates the average of the simulations contained within the SCOPE spectral dfs
-    
-    input
-    -----
-    df: pandas df
-    pandas dataframe containing spectra, columns named from wavelengths 400 - 2562 (nm)
-    
-    output
-    -----
-    means: np.array
-    array containing the average value of the simulations at each wavelength from 400 - 2562
-    """
-    means = [] # initiate empty array for average values
-    for col_name in range(400, 2562): # loop over each wavelength to calculate average values
-        means.append(df[col_name].mean())
-    return(np.asarray(means))
-
-
 def plot_o2a_band(e_spectra, l_spectra, wavelengths = np.arange(400, 2562)):
     """ Plots the O2A band of the average E and L spectra
 
@@ -198,6 +178,8 @@ def sFLD(e_spectra, l_spectra, wavelengths, plot=True):
         plt.scatter(wavelengths[l_out_index], l_out, label = 'l_out')
         #plt.legend()
         plt.xlim(750, 775)
+        plt.xlabel('Wavelength (nm)')
+        plt.ylabel('Radiance (mW m−2 sr−1 nm−1)')
         plt.show()
     
     
@@ -208,7 +190,7 @@ def sFLD(e_spectra, l_spectra, wavelengths, plot=True):
     
     return(fluorescence)
 
-def three_FLD(e_spectra, l_spectra, wavelengths, buffer_out = 8, plot=True):
+def three_FLD(e_spectra, l_spectra, wavelengths, buffer_out = 12, plot=True):
     """Applies the 3FLD method for SIF extraction
 
     Parameters
@@ -288,6 +270,8 @@ def three_FLD(e_spectra, l_spectra, wavelengths, buffer_out = 8, plot=True):
         
         #plt.legend()
         plt.xlim(750, 775)
+        plt.xlabel('Wavelength (nm)')
+        plt.ylabel('Radiance (mW m−2 sr−1 nm−1)')
         plt.show()
     
     fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
