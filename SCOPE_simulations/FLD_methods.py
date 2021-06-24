@@ -143,7 +143,7 @@ def stats_on_spectra(wl, wl_start, wl_end, spectra, fun):
     return(value_index, value)
     
     
-def sFLD(e_spectra, l_spectra, wavelengths, plot=True):
+def sFLD(e_spectra, l_spectra, wavelengths, buffer_out = 6, plot=True):
     """ final version of the sFLD algorithm
 
     Parameters
@@ -159,7 +159,6 @@ def sFLD(e_spectra, l_spectra, wavelengths, plot=True):
     """
     
     buffer_in = 5
-    buffer_out = 7
     
     wl_in = 760
     
@@ -185,8 +184,6 @@ def sFLD(e_spectra, l_spectra, wavelengths, plot=True):
     
     fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
     
-    if fluorescence < 0:
-        print('Error! Negative Fluorescence')
     
     return(fluorescence)
 
