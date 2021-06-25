@@ -112,8 +112,8 @@ def stats_on_spectra(wl, wl_start, wl_end, spectra, fun):
     spectra: np array
     spectra to conduct stats on
     
-    fun: str 'min' or 'max'
-    Locate the min or max of the region
+    fun: str 'min' or 'mean'
+    Calculate the min or mean of the selected spectral region
     
     output
     -------
@@ -132,18 +132,21 @@ def stats_on_spectra(wl, wl_start, wl_end, spectra, fun):
     index_start = find_nearest(wl, wl_start)
     index_end = find_nearest(wl, wl_end) + 1
     
-    if fun == 'max':
-        value_index = np.argmax(spectra[index_start:index_end]) + index_start
+    if fun == 'mean':
+        # find the index of the value closest to the mean so it can be plotted
+        # return the true mean value, may not be contained within the spectra array
+        value = np.mean(spectra[index_start:index_end])
+        value_index = find_nearest(wl, value) + index_start
+        
     if fun == 'min':
         value_index = np.argmin(spectra[index_start:index_end]) + index_start
-    
-    value = spectra[value_index]
+        value = spectra[value_index]
     
     
     return(value_index, value)
     
     
-def sFLD(e_spectra, l_spectra, wavelengths, buffer_out = 6, plot=True):
+def sFLD(e_spectra, l_spectra, wavelengths, fwhm, buffer_out = 1, plot=True):
     """ final version of the sFLD algorithm
 
     Parameters
@@ -154,18 +157,22 @@ def sFLD(e_spectra, l_spectra, wavelengths, buffer_out = 6, plot=True):
         spectral array of the upwelling solar radiance
     wavelengths : np array
         array of the wavelength values
+    fwhm: float
+        full width half maximum at which the O2A band was sampled
     plot : bool, optional
         produce plot of values, by default True
     """
     
     buffer_in = 5
+    buffer_out = np.ceil(buffer_out / fwhm)
+    out_in = 0.7535*fwhm+2.8937
     
     wl_in = 760
     
     e_in_index, e_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, e_spectra, 'min')
     l_in_index, l_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, l_spectra, 'min')
-    e_out_index, e_out = stats_on_spectra(wavelengths, wl_in - buffer_out, wl_in + buffer_out, e_spectra, 'max')
-    l_out_index, l_out = stats_on_spectra(wavelengths, wl_in - buffer_out, wl_in + buffer_out, l_spectra, 'max')
+    e_out_index, e_out = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in, wl_in - out_in, e_spectra, 'mean')
+    l_out_index, l_out = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in, wl_in - out_in, l_spectra, 'mean')
     
     if plot == True:
         
@@ -187,7 +194,7 @@ def sFLD(e_spectra, l_spectra, wavelengths, buffer_out = 6, plot=True):
     
     return(fluorescence)
 
-def three_FLD(e_spectra, l_spectra, wavelengths, buffer_out = 12, plot=True):
+def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, buffer_out = 1, plot=True):
     """Applies the 3FLD method for SIF extraction
 
     Parameters
@@ -198,12 +205,17 @@ def three_FLD(e_spectra, l_spectra, wavelengths, buffer_out = 12, plot=True):
         array containing the directional downwellling irradiance
     wavelengths : np.array
         array containing the wavelengths at which the E and L spectra are sampled over
+    fwhm: float
+        full width half maximum at which the O2A band was sampled
     plot : bool, optional
         generate plot of the O2A absorption band showing selected points, by default True
     """
     
-    buffer_in = 1
-    #buffer_out = 8
+    buffer_in = 5
+    buffer_out = np.ceil(buffer_out / fwhm)
+    out_in_first = 0.7535*fwhm+2.8937
+    out_in_second = 10 
+    
     
     wl_in = 760
     
@@ -212,11 +224,11 @@ def three_FLD(e_spectra, l_spectra, wavelengths, buffer_out = 12, plot=True):
     l_in_index, l_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, l_spectra, 'min')
     
     # get absorption shoulders
-    e_left_index, e_left = stats_on_spectra(wavelengths, wl_in - buffer_out, wl_in, e_spectra, 'max')
-    l_left_index, l_left = stats_on_spectra(wavelengths, wl_in - buffer_out, wl_in, l_spectra, 'max')
+    e_left_index, e_left = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in_first, wl_in - out_in_first, e_spectra, 'mean')
+    l_left_index, l_left = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in_first, wl_in - out_in_first, l_spectra, 'mean')
     
-    e_right_index, e_right = stats_on_spectra(wavelengths, wl_in, wl_in + buffer_out, e_spectra, 'max')
-    l_right_index, l_right = stats_on_spectra(wavelengths, wl_in, wl_in + buffer_out, l_spectra, 'max')
+    e_right_index, e_right = stats_on_spectra(wavelengths, wl_in + out_in_second, wl_in + buffer_out + out_in_second, e_spectra, 'mean')
+    l_right_index, l_right = stats_on_spectra(wavelengths, wl_in + out_in_second, wl_in + buffer_out + out_in_second, l_spectra, 'mean')
     
     # interpolate between shoulders
     
@@ -277,26 +289,26 @@ def three_FLD(e_spectra, l_spectra, wavelengths, buffer_out = 12, plot=True):
     
     return(fluorescence)
 
-"""
 # test sequence
 
+"""
 # get csv pathnames
-e_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Esun.csv"
-l_pathname = "/Users/jameswallace/Desktop/Project/data/verification_run_2021-06-14-1239/Lo_spectrum_inclF.csv"
+e_pathname = '/Users/jameswallace/Desktop/SCOPE_crops/dense_midold_unstressed_bean/Esun.csv'
+l_pathname = '/Users/jameswallace/Desktop/SCOPE_crops/dense_midold_unstressed_bean/Lo_spectrum_inclF.csv'
 
 # place them into dataframes
 e_df = get_simulated_spectral_df(e_pathname)
 l_df = get_simulated_spectral_df(l_pathname)
 
 # test FLD methods
-sFLD(np.asarray(e_df.iloc[0]) /np.pi, np.asarray(l_df.iloc[0]), np.arange(400, 2562), plot = True)
-three_FLD(np.asarray(e_df.iloc[0]) /np.pi, np.asarray(l_df.iloc[0]), np.arange(400, 2562), plot = True)
+sFLD(np.asarray(e_df.iloc[0]) /np.pi, np.asarray(l_df.iloc[0]), np.arange(400, 2562), fwhm = 1, plot = True)
+three_FLD(np.asarray(e_df.iloc[0]) /np.pi, np.asarray(l_df.iloc[0]), np.arange(400, 2562), fwhm = 1, plot = True)
 
 # resample the dataframes at 3.5 nm FWHM
 e_resampled, re_wave = resample_spectra(fwhm = 3.5, spectra = e_df.iloc[0])
 l_resampled = resample_spectra(fwhm = 3.5, spectra = l_df.iloc[0])[0]
 
 # test FLD methods on resampled spectras
-print(sFLD(e_resampled / np.pi, l_resampled, re_wave))
-print(three_FLD(e_resampled / np.pi, l_resampled, re_wave))
+print(sFLD(e_resampled / np.pi, l_resampled, re_wave, fwhm = 3.5))
+print(three_FLD(e_resampled / np.pi, l_resampled, re_wave, fwhm = 3.5))
 """
