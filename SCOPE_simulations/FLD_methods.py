@@ -95,59 +95,39 @@ def find_nearest(array, value):
 
 def stats_on_spectra(wl, wl_start, wl_end, spectra, fun):
     '''
-    Finds the value and index of the max or min within a given spectral range
-    
+    Finds a defined statistic on a spectra for a given wavelength range.
     
     input
     ------
     wl: np arrays
-    array of wavelengths
-    
+        array of wavelengths
     wl_start: int
-    start value of range for wavelengths
-    
+        start value of range for wavelengths
     wl_end: int
-    end of value range for wavelengths
-    
+        end of value range for wavelengths
     spectra: np array
-    spectra to conduct stats on
-    
+        spectra to conduct stats on
     fun: str 'min' or 'mean'
-    Calculate the min or mean of the selected spectral region
-    
-    output
-    -------
-    value_index: int
-    index of the wavelength and spectra matching the target value
-    
-    value: float
-    spectra value at absorption feature
-    
+        Calculate the min or mean of the selected spectral region
     '''
-    # get index of wavelength array value at the start of spectral range
-    # get index at wavelength array value at end of the spectral range
-    # apply the function to the input spectra sliced across the range
-    # return the value and the index
     
-    index_start = find_nearest(wl, wl_start)
-    index_end = find_nearest(wl, wl_end) + 1
+    index_start = find_nearest(wl, wl_start) # finds the index of the wavelength array containing the start value
+    index_end = find_nearest(wl, wl_end) + 1 # finds index of wavelengths for end array
     
-    if fun == 'mean':
-        # find the index of the value closest to the mean so it can be plotted
-        # return the true mean value, may not be contained within the spectra array
-        value = np.mean(spectra[index_start:index_end])
-        value_index = find_nearest(wl, value) + index_start
+    if fun == 'mean': # if mean statisitic is selected
+        value = np.mean(spectra[index_start:index_end]) # find the average of the spectral range
+        value_index = find_nearest(wl, value) + index_start # find the index of the nearest value to the mean (for plotting)
         
-    if fun == 'min':
-        value_index = np.argmin(spectra[index_start:index_end]) + index_start
-        value = spectra[value_index]
+    if fun == 'min': # if min statistic is selected
+        value_index = np.argmin(spectra[index_start:index_end]) + index_start # get the index of minimum value
+        value = spectra[value_index] # get the spectra value at this index
     
     
     return(value_index, value)
     
     
-def sFLD(e_spectra, l_spectra, wavelengths, fwhm, buffer_out = 1, plot=True):
-    """ final version of the sFLD algorithm
+def sFLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
+    """ Applies the sFLD method at the O2A absorption band to extract the SIF
 
     Parameters
     ----------
@@ -159,23 +139,30 @@ def sFLD(e_spectra, l_spectra, wavelengths, fwhm, buffer_out = 1, plot=True):
         array of the wavelength values
     fwhm: float
         full width half maximum at which the O2A band was sampled
+    band: str: 'A' or 'B'
+        Specifies which absorption band the retrieval algorithm should use, by default 'A' for O2A absorption band
     plot : bool, optional
         produce plot of values, by default True
     """
+    buffer_in = 5 #  range to look over within absorption feature
+    buffer_out = 1 # range to look over outside of the absorption feature
     
-    buffer_in = 5
-    buffer_out = np.ceil(buffer_out / fwhm)
-    out_in = 0.7535*fwhm+2.8937
+    if band == 'A':
+        out_in = 0.7535*fwhm+2.8937 # define amount to skip to shoulder from minimum
+        wl_in = 760 # standard location of O2A absorption feature
+    if band == 'B':
+        out_in = 0.697*fwhm + 1.245 # define amount to skip to shoulder from minimum
+        wl_in = 687 # standard location of the O2B aboorption band
     
-    wl_in = 760
-    
+    # find the points in given ranges
+    # find the minimum inside of the band for E_in and L_in
     e_in_index, e_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, e_spectra, 'min')
     l_in_index, l_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, l_spectra, 'min')
+    # find the average of the left shoulder for E_out and L_out
     e_out_index, e_out = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in, wl_in - out_in, e_spectra, 'mean')
     l_out_index, l_out = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in, wl_in - out_in, l_spectra, 'mean')
     
-    if plot == True:
-        
+    if plot == True: # plot spectra and points at absorption feature
         plt.plot(wavelengths, e_spectra, color = 'orange')
         plt.plot(wavelengths, l_spectra, color = 'blue')
         plt.scatter(wavelengths[e_in_index], e_in, label = 'e_in')
@@ -183,18 +170,26 @@ def sFLD(e_spectra, l_spectra, wavelengths, fwhm, buffer_out = 1, plot=True):
         plt.scatter(wavelengths[e_out_index], e_out, label = 'e_out')
         plt.scatter(wavelengths[l_out_index], l_out, label = 'l_out')
         #plt.legend()
-        plt.xlim(750, 775)
         plt.xlabel('Wavelength (nm)')
         plt.ylabel('Radiance (mW m−2 sr−1 nm−1)')
-        plt.show()
+        
+        # zoom to absorption band
+        
+        if band == 'A':
+            plt.xlim(750, 775)
+            plt.title('O$_2$A Absorption Band')
+        
+        if band == 'B':
+            plt.xlim(680, 700)
+            plt.title('O$_2$B Absorption Band')
+        
+        plt.show() # show plot
     
-    
-    fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
-    
+    fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in) # calculate fluorescence
     
     return(fluorescence)
 
-def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, buffer_out = 1, plot=True):
+def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
     """Applies the 3FLD method for SIF extraction
 
     Parameters
@@ -207,55 +202,48 @@ def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, buffer_out = 1, plot=True
         array containing the wavelengths at which the E and L spectra are sampled over
     fwhm: float
         full width half maximum at which the O2A band was sampled
+    band: str: 'A' or 'B'
+        Specifies which absorption band the retrieval algorithm should use, by default 'A' for O2A absorption band
     plot : bool, optional
         generate plot of the O2A absorption band showing selected points, by default True
     """
     
     buffer_in = 5
-    buffer_out = np.ceil(buffer_out / fwhm)
-    out_in_first = 0.7535*fwhm+2.8937
-    out_in_second = 10 
+    buffer_out = 1
     
-    
-    wl_in = 760
+    if band == 'A':
+        out_in_first = 0.7535*fwhm+2.8937 # define amount to skip to shoulder from minimum
+        wl_in = 760 # standard location of O2A absorption feature
+        out_in_second = 10
+    if band == 'B':
+        out_in_first = 0.697*fwhm + 1.245 # define amount to skip to shoulder from minimum
+        wl_in = 687 # standard location of the O2B aboorption band
+        out_in_second = 8
     
     # get absorption well position
     e_in_index, e_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, e_spectra, 'min')
     l_in_index, l_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, l_spectra, 'min')
-    
     # get absorption shoulders
     e_left_index, e_left = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in_first, wl_in - out_in_first, e_spectra, 'mean')
     l_left_index, l_left = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in_first, wl_in - out_in_first, l_spectra, 'mean')
-    
     e_right_index, e_right = stats_on_spectra(wavelengths, wl_in + out_in_second, wl_in + buffer_out + out_in_second, e_spectra, 'mean')
     l_right_index, l_right = stats_on_spectra(wavelengths, wl_in + out_in_second, wl_in + buffer_out + out_in_second, l_spectra, 'mean')
-    
     # interpolate between shoulders
-    
     e_wavelengths_inter = wavelengths[e_left_index:e_right_index + 1]
     l_wavelengths_inter = wavelengths[l_left_index:l_right_index + 1]
-    
     # get equation of straight line between two shoulders
-    
     e_xp = [e_wavelengths_inter[0], e_wavelengths_inter[-1]] # get x values
     l_xp = [l_wavelengths_inter[0], l_wavelengths_inter[-1]]
-    
     e_fp = [e_left, e_right] # get y values
     l_fp = [l_left, l_right]
-    
     e_coefficients = np.polyfit(e_xp, e_fp, 1) # polyfit for equation
     l_coefficients = np.polyfit(l_xp, l_fp, 1)
-    
     # apply to wavelengths in between shoulders
-    
     e_interpolated = e_wavelengths_inter*e_coefficients[0] + e_coefficients[1]
     l_interpolated = l_wavelengths_inter*l_coefficients[0] + l_coefficients[1]
-    
     # find interpolated value inside of absorption band
-    
     e_out = e_interpolated[e_in_index - e_left_index]
     l_out = l_interpolated[l_in_index - l_left_index]
-    
     
     if plot == True:
         
@@ -278,14 +266,18 @@ def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, buffer_out = 1, plot=True
         plt.scatter(wavelengths[l_in_index], l_out, label = 'l_out')
         
         #plt.legend()
-        plt.xlim(750, 775)
+        if band == 'A':
+            plt.xlim(750, 775)
+            plt.title('O$_2$A Absorption Band')
+        
+        if band == 'B':
+            plt.xlim(680, 700)
+            plt.title('O$_2$B Absorption Band')
         plt.xlabel('Wavelength (nm)')
         plt.ylabel('Radiance (mW m−2 sr−1 nm−1)')
         plt.show()
     
-    fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in)
-    
-
+    fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in) # calculate fluorescence
     
     return(fluorescence)
 
