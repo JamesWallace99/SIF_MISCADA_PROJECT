@@ -214,7 +214,7 @@ def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
     if band == 'A':
         out_in_first = 0.7535*fwhm+2.8937 # define amount to skip to shoulder from minimum
         wl_in = 760 # standard location of O2A absorption feature
-        out_in_second = 10
+        out_in_second = 11
     if band == 'B':
         out_in_first = 0.697*fwhm + 1.245 # define amount to skip to shoulder from minimum
         wl_in = 687 # standard location of the O2B aboorption band
@@ -280,6 +280,31 @@ def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
     fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in) # calculate fluorescence
     
     return(fluorescence)
+
+def iFLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
+    """Applies the 3FLD method for SIF extraction
+
+    Parameters
+    ----------
+    e_spectra : np.array
+        array containing the directional downwellling irradiance
+    l_spectra : np.array
+        array containing the directional downwellling irradiance
+    wavelengths : np.array
+        array containing the wavelengths at which the E and L spectra are sampled over
+    fwhm: float
+        full width half maximum at which the O2A band was sampled
+    band: str: 'A' or 'B'
+        Specifies which absorption band the retrieval algorithm should use, by default 'A' for O2A absorption band
+    plot : bool, optional
+        generate plot of the O2A absorption band showing selected points, by default True
+    """
+    
+    # calculate apparent reflectance around range of interest R_app = L*pi / E = R + f*pi / E
+    # remove the oxygen absorption band from the spectra by 'smoothing' (interpolating) between them
+    # use spline smoothing method to fill the gaps, likely a seperate function
+    # then use factors from fit and equation from paper to calc fluorescence
+    
 
 # test sequence
 
