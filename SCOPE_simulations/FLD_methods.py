@@ -363,7 +363,6 @@ def fit_NaN(spectrum, wavelengths):
 
     # plot points selected outside of band
     plt.scatter(x_vals, y_vals, label = 'Known points')
-    r_app_ref = (l_first_row * np.pi) / e_first_row
     plt.plot(wavelengths, spectrum, color = 'orange', label = 'Known Spectra')
     #plt.ylim(0.3, 0.5)
     plt.xlim(750, 775)
