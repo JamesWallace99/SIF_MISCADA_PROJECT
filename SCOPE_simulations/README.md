@@ -216,7 +216,7 @@ sFLD(e_first_row / np.pi, l_first_row, wavelengths, fwhm = 1, band = 'A', plot =
 
 
     
-![png](output_9_0.png)
+![png](example_FLD_method_SCOPE_workflow/output_9_0.png)
     
 
 
