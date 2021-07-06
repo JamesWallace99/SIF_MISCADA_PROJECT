@@ -237,7 +237,7 @@ def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
     fluorescence: float
         SIF retrieved at the given absorption band
     """
-    
+    # set the size of the point selection search regions inside and outside of the absorption band
     buffer_in = 5
     buffer_out = 1
     
@@ -313,7 +313,7 @@ def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
     return(fluorescence)
 
 def cubic_spline(x_vals, y_vals, target_x):
-    """Performs a cubic spline fit. Returns a np.array of fitted f(x) values.
+    """Fits and performs a cubic spline fit over a given set of x-values.
 
     Parameters
     ----------
@@ -323,20 +323,28 @@ def cubic_spline(x_vals, y_vals, target_x):
         np.array of known y values
     target_x : np.array
         np.array of x values to fit the spline fit over
+    Output
+    --------
+    interpolated f(x) values: np.array
+        np.array of the cubic spline fit fitted to the target x values
     """
     tck = interpolate.splrep(x_vals, y_vals)
     return(interpolate.splev(target_x, tck))
 
 def fit_NaN(spectrum, wavelengths):
-    """Fits a spline fit over a spectra with NaN values at the O2 absorption bands.
-        Returns a smoothed spectrum with the NaN values replaced with a cubic spline fit.
+    """Fits a cubic spline fit over a radiance spectra with NaN values at the O2 absorption bands.
+        Returns a smoothed spectra with the NaN values replaced with the cubic spline interpolated values.
 
     Parameters
     ----------
     spectrum : np.array
-        TargertContains NaN values at the O2 absorption bands
+        radiance spectra containing NaN values at the O2 absorption bands (686 - 697 nm for O2B and 759–770 nm for O2A)
     wavelengths : np.array
-        wavelengths at which the spectrum was sampled over.
+        wavelengths at which the spectrum was sampled over
+    Output
+    ---------
+    smoothed: np.array
+        np.array containing the spectrum with the NaN values replaced with a cubic spline interpolation of the surrounding values 
     """
     
     # get the indicies of the empty absorption band areas in the spectrum
@@ -422,59 +430,57 @@ def fit_NaN(spectrum, wavelengths):
     return(smoothed)
     
 def iFLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
-    """ Applies the iFLD method at a defined O2 absorption band to extract the SIF.
-        Returns the SIF at the absorption band and generates a plot.
+    """ Applies the iFLD method at either the O2A or O2B absorption bands to extract the SIF.
+        As described by Alonso et al. (2008) DOI: 10.1109/LGRS.2008.2001180
 
     Parameters
     ----------
-    e_spectra : np array
-        spectral array containing the incident solar radiance (directional)
-    l_spectra : np array
-        spectral array of the upwelling solar radiance
-    wavelengths : np array
-        array of the wavelength values
+    e_spectra : np.array
+        spectral array containing the incident solar radiance
+    l_spectra : np.array
+        spectral array containing the upwelling solar radiance
+    wavelengths : np.array
+        array of the wavelength values at which both the 'e_spectra' and 'l_spectra' were sampled
     fwhm: float
-        full width half maximum at which the O2A band was sampled
-    band: str: 'A' or 'B'
+        full width half maximum at which the wavelengths were sampled
+    band: str ('A' or 'B')
         Specifies which absorption band the retrieval algorithm should use, by default 'A' for O2A absorption band
     plot : bool, optional
-        produce plot of values, by default True
+        produce plot at absorption band showing points selected, by default True
+    
+    Output
+    -------
+    fluorescence: float
+        SIF retrieved at the given absorption band
     """
     
-    r_app = l_spectra / e_spectra # get array of apparent reflectance values
+    r_app = l_spectra / e_spectra # caluclate array of apparent reflectance values
     
     # replace the absorption band areas with NaN values to construct the smoothed arrays
-    
-    o2b_left_index = find_nearest(wavelengths, 686) # identify the areas containing the O2A and O2B bands
+    # identify the areas containing the O2A and O2B bands
+    o2b_left_index = find_nearest(wavelengths, 686)
     o2b_right_index = find_nearest(wavelengths, 697)
     o2a_left_index = find_nearest(wavelengths, 759)
     o2a_right_index = find_nearest(wavelengths, 770)
     
-    r_app_nan = r_app
+    r_app_nan = np.copy(r_app) # make copies of the arrays
     e_spectra_nan = np.copy(e_spectra)
     
-    
-    # set values in these ranges to NaN
+    # set values within identified O2 absorption regions equal to NaN
     r_app_nan[o2b_left_index:o2b_right_index] = np.nan
     r_app_nan[o2a_left_index:o2a_right_index] = np.nan
-    # do the same for the first row of the spectra
     e_spectra_nan[o2b_left_index:o2b_right_index] = np.nan
     e_spectra_nan[o2a_left_index:o2a_right_index] = np.nan
     
-    
-    # get the smoothed spectras using a spline fit within the absorption band
+    # calculate the smoothed spectrums by applying a cubic spline fit within the NaN regions
     r_smoothed = fit_NaN(r_app_nan, wavelengths)
     e_smoothed = fit_NaN(e_spectra_nan, wavelengths)
     
-    
-    # now calculate the coefficients for the iFLD method
-    
-    # alpha_R = R_out / smoothed_R_in
-    # alpha_F = E_out * alpha_R / smoothed_E_in
-    
+    # now select the points inside and outside of the absorption band to calculate the fluorescence
     buffer_in = 5 #  range to look over within absorption feature
     buffer_out = 1 # range to look over outside of the absorption feature
     
+    # change the size of the shoulder skip and band position depending on the band of interest
     if band == 'A':
         out_in = 0.7535*fwhm+2.8937 # define amount to skip to shoulder from minimum
         wl_in = 760 # standard location of O2A absorption feature
@@ -483,22 +489,21 @@ def iFLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
         wl_in = 687 # standard location of the O2B aboorption band
     
     # find the points in given ranges
-    # find the minimum inside of the band for E_in and L_in
+    # find the minimum inside of the band defining e_in and l_in
     e_in_index, e_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, e_spectra, 'min')
     l_in_index, l_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, l_spectra, 'min')
-    # find the average of the left shoulder for E_out and L_out
+    # find the average value at the left shoulder defining e_out and l_out
     e_out_index, e_out = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in, wl_in - out_in, e_spectra, 'mean')
     l_out_index, l_out = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in, wl_in - out_in, l_spectra, 'mean')
     
+    # now calculate the apparent correction coefficients for the iFLD method
+    # alpha_R = R_out / r_smoothed_in
+    # alpha_F = E_out * alpha_R / e_smoothed_in
     r_out = l_out / e_out
-    
-    e_smoothed_in_index, e_smoothed_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, e_smoothed, 'min')
-    r_smoothed_in_index, r_smoothed_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, r_smoothed, 'min')
-    e_smoothed_in = e_smoothed[e_in_index]
+    e_smoothed_in = e_smoothed[e_in_index] # match the index of the band minimum with the smoothed spectra
     r_smoothed_in = r_smoothed[e_in_index]
     
-    
-    alpha_R = r_out / r_smoothed_in
+    alpha_R = r_out / r_smoothed_in # calculate the apparent correction coefficients
     alpha_F = e_out * alpha_R / e_smoothed_in
     
 
@@ -516,7 +521,6 @@ def iFLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
         plt.ylabel('Radiance (mW m−2 sr−1 nm−1)')
         
         # zoom to absorption band
-        
         if band == 'A':
             plt.xlim(750, 775)
             plt.title('O$_2$A Absorption Band: iFLD Fitting')
@@ -526,8 +530,8 @@ def iFLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
             plt.title('O$_2$B Absorption Band: iFLD Fitting')
         
         plt.show() # show plot
-    e_in 
-    fluorescence = (alpha_R*e_out*l_in - e_in*l_out) / (alpha_R*e_out - alpha_F*e_in) # calculate fluorescence
+        
+    fluorescence = (alpha_R*e_out*l_in - e_in*l_out) / (alpha_R*e_out - alpha_F*e_in) # calculate fluorescence using apparent correction coefficients
     
     return(fluorescence)
 
