@@ -1,8 +1,15 @@
+'''
+Contains functions to perform SIF extraction using the Fraunhofer Line Depth Methods sFLD, 3FLD and iFLD
+Author: James Wallace
+'''
+
+# import the relevant libraries
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import spectral.io.aviris as aviris
 from spectral import *
+from scipy import interpolate
 
 def get_simulated_spectral_df(file_pathname):
     """ Takes output spectral file from SCOPE model and transforms it to a df
@@ -34,6 +41,11 @@ def plot_o2a_band(e_spectra, l_spectra, wavelengths = np.arange(400, 2562)):
         pandas dataframe containing E spectra, columns named from wavelengths matching wavelengths array
     wavelengths : np.array, optional
         np array containing wavelengths that spectra are generated over, default np.arange(400, 2562) 1 nm FWHM
+    
+    Outputs
+    ---------
+    None
+    Shows the plot of the two spectra at the O2A absorption band region
     """
     
     e_spectra = e_spectra / np.pi # convert to same units
@@ -42,29 +54,30 @@ def plot_o2a_band(e_spectra, l_spectra, wavelengths = np.arange(400, 2562)):
     plt.plot(wavelengths, e_spectra, label = 'E / pi')
     plt.plot(wavelengths, l_spectra, label = 'L')
     plt.xlim(750, 780) # plot the O2A band
+    # label the axis and include a title
     plt.xlabel('Wavelength (nm)')
     plt.ylabel(' Radiance (W m-2 um-1 sr-1)')
     plt.title('O2A Absorption Band')
     plt.legend()
-    plt.show()
+    plt.show() # show the plot
     return()
 
 def resample_spectra(fwhm, spectra, wavelengths = np.arange(400, 2562)):
-    """Applies a Gaussian convolution to a spectra to resample to a desired FWHM
+    """Applies a Gaussian convolution to a spectra to resample to a desired FWHM.
 
     Parameters
     ----------
     fwhm : float
         target FWHM for new spectra
-    wavelengths : np array, default = np.arange(400, 2562) 1 nm FWHM
-        array of original wavelengths
-    spectra : np array
+    wavelengths : np array, default = np.arange(400, 2562) (i.e. 1 nm FWHM)
+        np.array containing the original wavelengths the spectra was sampled at
+    spectra : np.array
         spectra to be re-sampled
         
     Outputs
     --------
     resampled_spectra: np array
-        orignal spectra resampled at new FWHM
+        original spectra resampled at new FWHM
     bands2: np array
         wavelengths of newly resampled spectra
     """
@@ -82,44 +95,51 @@ def find_nearest(array, value):
     array: array
         array containing values to search over
     value: float
-        target value
+        value to search for within array
     
     Outputs
     --------
     idx: integer
-        index of the array item closet to the input value
+        index of the array for the array value closet to the search value
     '''
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
+    array = np.asarray(array) # treat the array as a np.array
+    idx = (np.abs(array - value)).argmin() # get the index of the minimum value of array - search value
     return(idx)
 
 def stats_on_spectra(wl, wl_start, wl_end, spectra, fun):
     '''
     Finds a defined statistic on a spectra for a given wavelength range.
     
-    input
-    ------
-    wl: np arrays
-        array of wavelengths
+    Parameters
+    -----------
+    wl: np.array
+        array of wavelengths at which the spectra was sampled over
     wl_start: int
-        start value of range for wavelengths
+        wavelength value at the start of the desired range
     wl_end: int
-        end of value range for wavelengths
+        wavelength value at the end of the desired range
     spectra: np array
-        spectra to conduct stats on
-    fun: str 'min' or 'mean'
-        Calculate the min or mean of the selected spectral region
+        spectra to extract statistic from, sampled at the given wavelength range
+    fun: str ('min' or 'mean')
+        Statistic to extract from the spectra in the given wavelength range
+        Calculate the minimum or mean of the selected spectral region
+    Outputs
+    --------
+    value index: int
+        index value of the array at which the statistic is located (or nearest to for fun = 'mean')
+    value: float
+        value of the statistic extracted from the spectral array within the given wavelength range
     '''
     
     index_start = find_nearest(wl, wl_start) # finds the index of the wavelength array containing the start value
     index_end = find_nearest(wl, wl_end) + 1 # finds index of wavelengths for end array
     
     if fun == 'mean': # if mean statisitic is selected
-        value = np.mean(spectra[index_start:index_end]) # find the average of the spectral range
+        value = np.mean(spectra[index_start:index_end]) # find the average of the spectra in the spectral range
         value_index = find_nearest(wl, value) + index_start # find the index of the nearest value to the mean (for plotting)
         
     if fun == 'min': # if min statistic is selected
-        value_index = np.argmin(spectra[index_start:index_end]) + index_start # get the index of minimum value
+        value_index = np.argmin(spectra[index_start:index_end]) + index_start # get the index of minimum value in spectral range
         value = spectra[value_index] # get the spectra value at this index
     
     
@@ -127,38 +147,43 @@ def stats_on_spectra(wl, wl_start, wl_end, spectra, fun):
     
     
 def sFLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
-    """ Applies the sFLD method at the O2A absorption band to extract the SIF
+    """ Applies the sFLD method at either the O2A or O2B absorption bands to extract the SIF.
 
     Parameters
     ----------
-    e_spectra : np array
-        spectral array containing the incident solar radiance (directional)
-    l_spectra : np array
+    e_spectra : np.array
+        spectral array containing the incident solar radiance
+    l_spectra : np.array
         spectral array of the upwelling solar radiance
-    wavelengths : np array
-        array of the wavelength values
+    wavelengths : np.array
+        array of the wavelength values at which both the 'e_spectra' and 'l_spectra' were sampled
     fwhm: float
-        full width half maximum at which the O2A band was sampled
-    band: str: 'A' or 'B'
+        full width half maximum at which the wavelengths were sampled
+    band: str ('A' or 'B')
         Specifies which absorption band the retrieval algorithm should use, by default 'A' for O2A absorption band
     plot : bool, optional
-        produce plot of values, by default True
+        produce plot at absorption band showing points selected, by default True
+    
+    Output
+    -------
+    fluorescence: float
+        SIF retrieved at the given absorption band
     """
-    buffer_in = 5 #  range to look over within absorption feature
-    buffer_out = 1 # range to look over outside of the absorption feature
+    buffer_in = 5 #  range to search within absorption feature
+    buffer_out = 1 # range to search outside of the absorption feature
     
     if band == 'A':
-        out_in = 0.7535*fwhm+2.8937 # define amount to skip to shoulder from minimum
-        wl_in = 760 # standard location of O2A absorption feature
+        out_in = 0.7535*fwhm+2.8937 # define amount to skip to left shoulder from minimum
+        wl_in = 760 # standard location of O2A absorption feature defines start of search location
     if band == 'B':
-        out_in = 0.697*fwhm + 1.245 # define amount to skip to shoulder from minimum
-        wl_in = 687 # standard location of the O2B aboorption band
+        out_in = 0.697*fwhm + 1.245 # define amount to skip to left shoulder from minimum
+        wl_in = 687 # standard location of the O2B aboorption band defines start of search location
     
-    # find the points in given ranges
-    # find the minimum inside of the band for E_in and L_in
+    # find the points in given ranges using the stats_on_spectra function
+    # find the minimum inside of the band for E_in and L_in starting at the standard locations for each band
     e_in_index, e_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, e_spectra, 'min')
     l_in_index, l_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, l_spectra, 'min')
-    # find the average of the left shoulder for E_out and L_out
+    # locate the left shoulder of the band using the average of values within a given range
     e_out_index, e_out = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in, wl_in - out_in, e_spectra, 'mean')
     l_out_index, l_out = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in, wl_in - out_in, l_spectra, 'mean')
     
@@ -185,50 +210,56 @@ def sFLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
         
         plt.show() # show plot
     
-    fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in) # calculate fluorescence
+    fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in) # calculate fluorescence using sFLD method
     
     return(fluorescence)
 
 def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
-    """Applies the 3FLD method for SIF extraction
+    """ Applies the 3FLD method at either the O2A or O2B absorption bands to extract the SIF.
 
     Parameters
     ----------
     e_spectra : np.array
-        array containing the directional downwellling irradiance
+        spectral array containing the incident solar radiance
     l_spectra : np.array
-        array containing the directional downwellling irradiance
+        spectral array of the upwelling solar radiance
     wavelengths : np.array
-        array containing the wavelengths at which the E and L spectra are sampled over
+        array of the wavelength values at which both the 'e_spectra' and 'l_spectra' were sampled
     fwhm: float
-        full width half maximum at which the O2A band was sampled
-    band: str: 'A' or 'B'
+        full width half maximum at which the wavelengths were sampled
+    band: str ('A' or 'B')
         Specifies which absorption band the retrieval algorithm should use, by default 'A' for O2A absorption band
     plot : bool, optional
-        generate plot of the O2A absorption band showing selected points, by default True
+        produce plot at absorption band showing points selected, by default True
+    
+    Output
+    -------
+    fluorescence: float
+        SIF retrieved at the given absorption band
     """
     
     buffer_in = 5
     buffer_out = 1
     
+    # adjust the shoulder skipping and right shoulder search range depending on which band is selected
     if band == 'A':
-        out_in_first = 0.7535*fwhm+2.8937 # define amount to skip to shoulder from minimum
+        out_in_first = 0.7535*fwhm+2.8937 # define amount to skip to left shoulder from minimum
         wl_in = 760 # standard location of O2A absorption feature
-        out_in_second = 11
+        out_in_second = 11 # define amount to skip to right shoulder from minimum
     if band == 'B':
-        out_in_first = 0.697*fwhm + 1.245 # define amount to skip to shoulder from minimum
+        out_in_first = 0.697*fwhm + 1.245 # define amount to skip to left shoulder from minimum
         wl_in = 687 # standard location of the O2B aboorption band
-        out_in_second = 8
+        out_in_second = 8 # define amount to skip to right shoulder from minimum
     
-    # get absorption well position
+    # get absorption well minima position
     e_in_index, e_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, e_spectra, 'min')
     l_in_index, l_in = stats_on_spectra(wavelengths, wl_in - buffer_in, wl_in + buffer_in, l_spectra, 'min')
-    # get absorption shoulders
+    # get absorption left and right shoulders
     e_left_index, e_left = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in_first, wl_in - out_in_first, e_spectra, 'mean')
     l_left_index, l_left = stats_on_spectra(wavelengths, wl_in - buffer_out - out_in_first, wl_in - out_in_first, l_spectra, 'mean')
     e_right_index, e_right = stats_on_spectra(wavelengths, wl_in + out_in_second, wl_in + buffer_out + out_in_second, e_spectra, 'mean')
     l_right_index, l_right = stats_on_spectra(wavelengths, wl_in + out_in_second, wl_in + buffer_out + out_in_second, l_spectra, 'mean')
-    # interpolate between shoulders
+    # interpolate between shoulders using a linear fit
     e_wavelengths_inter = wavelengths[e_left_index:e_right_index + 1]
     l_wavelengths_inter = wavelengths[l_left_index:l_right_index + 1]
     # get equation of straight line between two shoulders
@@ -236,16 +267,16 @@ def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
     l_xp = [l_wavelengths_inter[0], l_wavelengths_inter[-1]]
     e_fp = [e_left, e_right] # get y values
     l_fp = [l_left, l_right]
-    e_coefficients = np.polyfit(e_xp, e_fp, 1) # polyfit for equation
+    e_coefficients = np.polyfit(e_xp, e_fp, 1) # polyfit with 1 DoF for linear fit
     l_coefficients = np.polyfit(l_xp, l_fp, 1)
-    # apply to wavelengths in between shoulders
+    # apply fit to wavelengths between shoulders
     e_interpolated = e_wavelengths_inter*e_coefficients[0] + e_coefficients[1]
     l_interpolated = l_wavelengths_inter*l_coefficients[0] + l_coefficients[1]
-    # find interpolated value inside of absorption band
+    # find lineary interpolated value matching the index of absorption well minima
     e_out = e_interpolated[e_in_index - e_left_index]
     l_out = l_interpolated[l_in_index - l_left_index]
     
-    if plot == True:
+    if plot == True: # generate plots showing absorption band and selected points
         
         # plot spectra
         plt.plot(wavelengths, e_spectra, color = 'orange')
@@ -277,11 +308,9 @@ def three_FLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
         plt.ylabel('Radiance (mW m−2 sr−1 nm−1)')
         plt.show()
     
-    fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in) # calculate fluorescence
+    fluorescence = (e_out*l_in - l_out*e_in) / (e_out - e_in) # calculate fluorescence using interpolated values
     
     return(fluorescence)
-
-from scipy import interpolate
 
 def cubic_spline(x_vals, y_vals, target_x):
     """Performs a cubic spline fit. Returns a np.array of fitted f(x) values.
