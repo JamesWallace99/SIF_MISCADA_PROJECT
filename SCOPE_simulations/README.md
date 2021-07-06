@@ -237,7 +237,7 @@ three_FLD(e_first_row / np.pi, l_first_row, wavelengths, fwhm =1, band = 'A', pl
 
 
     
-![png](output_11_0.png)
+![png](example_FLD_method_SCOPE_workflow/output_11_0.png)
     
 
 
@@ -258,31 +258,31 @@ iFLD(e_first_row / np.pi, l_first_row, wavelengths, fwhm =1, band = 'A', plot = 
 
 
     
-![png](output_13_0.png)
+![png](example_FLD_method_SCOPE_workflow/output_13_0.png)
     
 
 
 
     
-![png](output_13_1.png)
+![png](example_FLD_method_SCOPE_workflow/output_13_1.png)
     
 
 
 
     
-![png](output_13_2.png)
+![png](example_FLD_method_SCOPE_workflow/output_13_2.png)
     
 
 
 
     
-![png](output_13_3.png)
+![png](example_FLD_method_SCOPE_workflow/output_13_3.png)
     
 
 
 
     
-![png](output_13_4.png)
+![png](example_FLD_method_SCOPE_workflow/output_13_4.png)
     
 
 
@@ -313,7 +313,7 @@ sFLD(e_resampled / np.pi, l_resampled, resampled_wavelengths, fwhm = 3.5, band =
 
 
     
-![png](output_17_0.png)
+![png](example_FLD_method_SCOPE_workflow/output_17_0.png)
     
 
 
@@ -331,7 +331,7 @@ three_FLD(e_resampled / np.pi, l_resampled, resampled_wavelengths, fwhm = 3.5, b
 
 
     
-![png](output_18_0.png)
+![png](example_FLD_method_SCOPE_workflow/output_18_0.png)
     
 
 
@@ -349,31 +349,31 @@ iFLD(e_resampled / np.pi, l_resampled, resampled_wavelengths, fwhm = 3.5, band =
 
 
     
-![png](output_19_0.png)
+![png](example_FLD_method_SCOPE_workflow/output_19_0.png)
     
 
 
 
     
-![png](output_19_1.png)
+![png](example_FLD_method_SCOPE_workflow/output_19_1.png)
     
 
 
 
     
-![png](output_19_2.png)
+![png](example_FLD_method_SCOPE_workflow/output_19_2.png)
     
 
 
 
     
-![png](output_19_3.png)
+![png](example_FLD_method_SCOPE_workflow/output_19_3.png)
     
 
 
 
     
-![png](output_19_4.png)
+![png](example_FLD_method_SCOPE_workflow/output_19_4.png)
     
 
 
