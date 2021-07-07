@@ -6,6 +6,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import math
 import sys
+import json
 sys.path.insert(1, '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/SCOPE_simulations')
 import FLD_methods
 
@@ -189,7 +190,6 @@ def bandnumber_to_wavelength(band_number_conversion_pathname):
     # import csv containing band numbers conversion
     band_num_conv_df = pd.read_csv(band_number_conversion_pathname, index_col = 'ID')
     
-    print('Conversion Succesful!')
     
     return(band_num_conv_df)
 
@@ -300,7 +300,7 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace
     timestampStr = dateTimeObj.strftime("%d_%m_%Y_%H:%M_")
     output_name = 'temp_spectral_' + timestampStr + '.csv'
     tif_to_csv(tif_pathname, output_name) 
-    
+    print('Converting CSV files')
     # convert csv files contianing spectra and wavelength conversions to dataframes
     r_app_df = spectral_csv_to_df(output_name) # convert the spectral csv to dataframe
     wavelengths_df = bandnumber_to_wavelength(bandnumber_pathname) # convert wavelengths dataframe
@@ -312,7 +312,7 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace
     # initiate df for fluorescence values and co-ordinates
     d = {'x': np.asarray(r_app_df['x']), 'y': np.asarray(r_app_df['y']), 'fluor': np.empty(len(r_app_df))} # get the data
     fluorescence_df = pd.DataFrame(data = d) # create the dataframe
-    
+    print('Calculating Fluorescence using ' + method + ' FLD method')
     # calculate the fluorescence
     if method == 'simple':
         # get the fluorscence using sFLD
@@ -339,9 +339,22 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace
         plt.xlabel('SIF')
         plt.ylabel('Frequency')
         plt.show()
+    os.remove(output_name)
     
-    return(fluorescence_df)
+    # now save the new fluorescence dataframe to a csv file
+    
+    options = {'tif_image': tif_pathname, 'method': method, 'e_spectra': e_pathname, 'Wavelengths': bandnumber_pathname}
+    
+    csv_output_name = 'fluorescence' + timestampStr + '.csv'
+    options_name = 'fluorescence' + timestampStr + 'parameters.txt'
+    
+    fluorescence_df.to_csv(csv_output_name) # write fluorescence values to csv
+    
+    with open(options_name, 'w') as file:
+        file.write(json.dumps(options)) # write input parameters to txt file
+    
+    return(print('Fluorescence values succesfully saved!'))
 
 # test
-# get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s7_5240_W.tif', method = 'improved')
+#get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s7_5240_W.tif', method = 'improved')
     
