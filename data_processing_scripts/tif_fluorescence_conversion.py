@@ -334,10 +334,12 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace
     if plot == True:
         plt.scatter(fluorescence_df['x'], fluorescence_df['y'], c=fluorescence_df['fluor'], s = 0.5, marker = 'h')
         plt.colorbar()
+        plt.title(tif_pathname)
         plt.show()
         plt.hist(fluorescence_df['fluor'], bins = 50)
         plt.xlabel('SIF')
         plt.ylabel('Frequency')
+        plt.title(tif_pathname)
         plt.show()
     os.remove(output_name)
     
@@ -357,4 +359,3 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace
 
 # test
 #get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s7_5240_W.tif', method = 'improved')
-    
