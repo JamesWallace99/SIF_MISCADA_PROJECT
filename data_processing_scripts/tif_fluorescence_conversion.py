@@ -327,23 +327,25 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace
         # get the fluorscence using sFLD
         for i in range(len(r_app_df)):
             l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi # for each pixel get the upwelling radiance from the apparent reflectance
-            fluorescence_df['fluor'][i] = FLD_methods.sFLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = 'A', plot = False)
+            fluorescence_df['fluor'][i] = FLD_methods.sFLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = band, plot = False)
     if method == 'three':
         # get the fluorscence using 3FLD
         for i in range(len(r_app_df)):
             l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi # for each pixel get the upwelling radiance from the apparent reflectance
-            fluorescence_df['fluor'][i] = FLD_methods.three_FLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = 'A', plot = False)
+            fluorescence_df['fluor'][i] = FLD_methods.three_FLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = band, plot = False)
     if method == 'improved':
         # get the fluorscence using iFLD
         for i in range(len(r_app_df)):
             l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi # for each pixel get the upwelling radiance from the apparent reflectance
-            fluorescence_df['fluor'][i] = FLD_methods.iFLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = 'A', plot = False)
+            fluorescence_df['fluor'][i] = FLD_methods.iFLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = band, plot = False)
     
     # generate heatmap plot of fluorescence intensity
     if plot == True:
         plt.scatter(fluorescence_df['x'], fluorescence_df['y'], c=fluorescence_df['fluor'], s = 0.5, marker = 'h')
         plt.colorbar()
         plt.title(tif_pathname)
+        plt.xlabel('X co-ord (UTM60)')
+        plt.ylabel('Y co-ord (UTM60)')
         plt.show()
         plt.hist(fluorescence_df['fluor'], bins = 50)
         plt.xlabel('SIF')
@@ -367,4 +369,4 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace
     return(print('Fluorescence values succesfully saved!'))
 
 # test
-#get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s7_5240_W.tif', method = 'improved')
+#get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/red/s21_6562_E.tif', method = 'improved')
