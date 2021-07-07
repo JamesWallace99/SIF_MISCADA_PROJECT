@@ -57,13 +57,13 @@ get_tif_fluorescence(tif_pathname=tif_pathname, method=method, e_pathname=e_path
 
 
     
-![png](/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/data_processing_scripts/example_extraction_workflow_images/output_9_1.png)
+![png](example_extraction_workflow_images/output_9_1.png)
     
 
 
 
     
-![png](/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/data_processing_scripts/example_extraction_workflow_images/output_9_2.png)
+![png](example_extraction_workflow_images/output_9_2.png)
     
 
 
