@@ -278,7 +278,7 @@ Final function to calculate fluorscence values over the image and generate heat 
 --------------------------------------------
 '''
 
-def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv', bandnumber_pathname = '/Users/jameswallace/Desktop/Project/band_number_conversion.csv', plot = True):
+def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv', bandnumber_pathname = '/Users/jameswallace/Desktop/Project/band_number_conversion.csv', plot = True, band = 'A'):
     """Retrieves the fluorescence values from a TIF image using a defined FLD method.
 
     Parameters
@@ -294,6 +294,15 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace
         pathname of the csv file containing the measurement wavelengths, by default '/Users/jameswallace/Desktop/Project/band_number_conversion.csv'
     plot : bool, optional
         dictates wether heat map and histogram plot of retrieved SIF is generated, by default True
+    band: str ('A' or 'B')
+        determines which O2 absorption band to use for retrieval, default 'A' the O2A absorption band
+        take either 'A' for the O2A band or 'B' for the O2B band.
+        
+    Outputs
+    --------
+    Saves a csv file containing the fluorescence values at each coordinate.
+    Saves a  txt file containing the parameters of the simulation.
+    Presents graphs showing a heatmap of the fluorescence values and histogram of the distribution.
     """
     # convert tif image to spectral csv file
     dateTimeObj = datetime.now() # get time stamp for output name
