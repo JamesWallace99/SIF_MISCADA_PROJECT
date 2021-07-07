@@ -4,11 +4,9 @@ import numpy as np
 import os
 from datetime import datetime
 import matplotlib.pyplot as plt
-
+import math
 import sys
-# insert at 1, 0 is the script path (or '' in REPL)
 sys.path.insert(1, '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/SCOPE_simulations')
-
 import FLD_methods
 
 
@@ -195,6 +193,84 @@ def bandnumber_to_wavelength(band_number_conversion_pathname):
     
     return(band_num_conv_df)
 
+'''
+--------------------------------------------
+Convert UTM Coordinates to Latitude and Longlitude
+--------------------------------------------
+'''
+
+def utmToLatLng(easting, northing, zone = 60, northernHemisphere=True):
+    """Converts UTM co-ordinate system to lattitude and longlitude
+
+    Parameters
+    ----------
+    easting : float
+        x-coordinate
+    northing : float
+        y-coordinate
+    zone : int, optional
+        coordinate zone (N to W), by default 60 (New Zealand)
+    northernHemisphere : bool, optional
+        are the coordinates in the northen hemisphere, by default True
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    
+    
+    
+    if not northernHemisphere:
+        northing = 10000000 - northing
+
+    a = 6378137
+    e = 0.081819191
+    e1sq = 0.006739497
+    k0 = 0.9996
+
+    arc = northing / k0
+    mu = arc / (a * (1 - math.pow(e, 2) / 4.0 - 3 * math.pow(e, 4) / 64.0 - 5 * math.pow(e, 6) / 256.0))
+
+    ei = (1 - math.pow((1 - e * e), (1 / 2.0))) / (1 + math.pow((1 - e * e), (1 / 2.0)))
+
+    ca = 3 * ei / 2 - 27 * math.pow(ei, 3) / 32.0
+
+    cb = 21 * math.pow(ei, 2) / 16 - 55 * math.pow(ei, 4) / 32
+    cc = 151 * math.pow(ei, 3) / 96
+    cd = 1097 * math.pow(ei, 4) / 512
+    phi1 = mu + ca * math.sin(2 * mu) + cb * math.sin(4 * mu) + cc * math.sin(6 * mu) + cd * math.sin(8 * mu)
+
+    n0 = a / math.pow((1 - math.pow((e * math.sin(phi1)), 2)), (1 / 2.0))
+
+    r0 = a * (1 - e * e) / math.pow((1 - math.pow((e * math.sin(phi1)), 2)), (3 / 2.0))
+    fact1 = n0 * math.tan(phi1) / r0
+
+    _a1 = 500000 - easting
+    dd0 = _a1 / (n0 * k0)
+    fact2 = dd0 * dd0 / 2
+
+    t0 = math.pow(math.tan(phi1), 2)
+    Q0 = e1sq * math.pow(math.cos(phi1), 2)
+    fact3 = (5 + 3 * t0 + 10 * Q0 - 4 * Q0 * Q0 - 9 * e1sq) * math.pow(dd0, 4) / 24
+
+    fact4 = (61 + 90 * t0 + 298 * Q0 + 45 * t0 * t0 - 252 * e1sq - 3 * Q0 * Q0) * math.pow(dd0, 6) / 720
+
+    lof1 = _a1 / (n0 * k0)
+    lof2 = (1 + 2 * t0 + Q0) * math.pow(dd0, 3) / 6.0
+    lof3 = (5 - 2 * Q0 + 28 * t0 - 3 * math.pow(Q0, 2) + 8 * e1sq + 24 * math.pow(t0, 2)) * math.pow(dd0, 5) / 120
+    _a2 = (lof1 - lof2 + lof3) / math.cos(phi1)
+    _a3 = _a2 * 180 / math.pi
+
+    latitude = 180 * (phi1 - fact1 * (fact2 + fact3 + fact4)) / math.pi
+
+    if not northernHemisphere:
+        latitude = -latitude
+
+    longitude = ((zone > 0) and (6 * zone - 183.0) or 3.0) - _a3
+
+    return (latitude, longitude)
+
 
 '''
 --------------------------------------------
@@ -203,34 +279,68 @@ Final function to calculate fluorscence values over the image and generate heat 
 '''
 
 def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv', bandnumber_pathname = '/Users/jameswallace/Desktop/Project/band_number_conversion.csv', plot = True):
-    # convert tif image to csv
+    """Retrieves the fluorescence values from a TIF image using a defined FLD method.
+
+    Parameters
+    ----------
+    tif_pathname : str (pathname)
+        pathname of the target TIF image
+    method : str ('simple', 'three' or 'improved')
+        defines the FLD method to be used for SIF retrieval. 
+        Either: 'simple' (sFLD), 'three' (3FLD) or 'improved' (iFLD)
+    e_pathname : str (pathname)
+        pathname of the csv output file from the Py6S irradiance simulation, by default '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv'
+    bandnumber_pathname : str, optional
+        pathname of the csv file containing the measurement wavelengths, by default '/Users/jameswallace/Desktop/Project/band_number_conversion.csv'
+    plot : bool, optional
+        dictates wether heat map and histogram plot of retrieved SIF is generated, by default True
+    """
+    # convert tif image to spectral csv file
     dateTimeObj = datetime.now() # get time stamp for output name
     timestampStr = dateTimeObj.strftime("%d_%m_%Y_%H:%M_")
     output_name = 'temp_spectral_' + timestampStr + '.csv'
     tif_to_csv(tif_pathname, output_name) 
     
-    # csv file to dataframe
+    # convert csv files contianing spectra and wavelength conversions to dataframes
     r_app_df = spectral_csv_to_df(output_name) # convert the spectral csv to dataframe
     wavelengths_df = bandnumber_to_wavelength(bandnumber_pathname) # convert wavelengths dataframe
     
-    # csv to np.arrays
+    # convert e_spectra and wavelengths to np.arrays
     e_spectra = py6s_csv_to_array(e_pathname) # convert irradiance csv to np.array
     wavelengths = np.asarray(wavelengths_df['Wavelength']) # get np.array of wavelength values
     
     # initiate df for fluorescence values and co-ordinates
-    d = {'x': np.asarray(r_app_df['x']), 'y': np.asarray(r_app_df['y']), 'fluor': np.empty(len(r_app_df))}
+    d = {'x': np.asarray(r_app_df['x']), 'y': np.asarray(r_app_df['y']), 'fluor': np.empty(len(r_app_df))} # get the data
     fluorescence_df = pd.DataFrame(data = d) # create the dataframe
     
-    for i in range(len(r_app_df)):
-        l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi
-        fluorescence_df['fluor'][i] = FLD_methods.sFLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = 'A', plot = False)
+    # calculate the fluorescence
+    if method == 'simple':
+        # get the fluorscence using sFLD
+        for i in range(len(r_app_df)):
+            l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi # for each pixel get the upwelling radiance from the apparent reflectance
+            fluorescence_df['fluor'][i] = FLD_methods.sFLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = 'A', plot = False)
+    if method == 'three':
+        # get the fluorscence using 3FLD
+        for i in range(len(r_app_df)):
+            l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi # for each pixel get the upwelling radiance from the apparent reflectance
+            fluorescence_df['fluor'][i] = FLD_methods.three_FLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = 'A', plot = False)
+    if method == 'improved':
+        # get the fluorscence using iFLD
+        for i in range(len(r_app_df)):
+            l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi # for each pixel get the upwelling radiance from the apparent reflectance
+            fluorescence_df['fluor'][i] = FLD_methods.iFLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = 'A', plot = False)
     
+    # generate heatmap plot of fluorescence intensity
     if plot == True:
         plt.scatter(fluorescence_df['x'], fluorescence_df['y'], c=fluorescence_df['fluor'], s = 0.5, marker = 'h')
         plt.colorbar()
         plt.show()
+        plt.hist(fluorescence_df['fluor'], bins = 50)
+        plt.xlabel('SIF')
+        plt.ylabel('Frequency')
+        plt.show()
     
     return(fluorescence_df)
 
-get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s7_5240_W.tif', method = 1)
+get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s7_5240_W.tif', method = 'simple')
     
