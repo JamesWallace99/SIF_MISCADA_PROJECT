@@ -331,7 +331,7 @@ def cubic_spline(x_vals, y_vals, target_x):
     tck = interpolate.splrep(x_vals, y_vals)
     return(interpolate.splev(target_x, tck))
 
-def fit_NaN(spectrum, wavelengths):
+def fit_NaN(spectrum, wavelengths, plot):
     """Fits a cubic spline fit over a radiance spectra with NaN values at the O2 absorption bands.
         Returns a smoothed spectra with the NaN values replaced with the cubic spline interpolated values.
 
@@ -341,6 +341,8 @@ def fit_NaN(spectrum, wavelengths):
         radiance spectra containing NaN values at the O2 absorption bands (686 - 697 nm for O2B and 759–770 nm for O2A)
     wavelengths : np.array
         wavelengths at which the spectrum was sampled over
+    plot: bool
+        generate plots showing smoothed spectra
     Output
     ---------
     smoothed: np.array
@@ -365,25 +367,27 @@ def fit_NaN(spectrum, wavelengths):
     y_vals_left = spectrum[int(o2b_indices[0]) - search_size: int(o2b_indices[0])]
     y_vals_right = spectrum[int(o2b_indices[-1]) + 1: int(o2b_indices[-1]) + search_size + 1]
     y_vals = np.append(y_vals_left, y_vals_right)
-
-    # plot points selected outside of band
-    plt.scatter(x_vals, y_vals, label = 'Known Points')
-    plt.plot(wavelengths, spectrum, color = 'orange', label = 'Spectra')
-    plt.xlim(675, 707)
+    
+    if plot == True:
+        # plot points selected outside of band
+        plt.scatter(x_vals, y_vals, label = 'Known Points')
+        plt.plot(wavelengths, spectrum, color = 'orange', label = 'Spectra')
+        plt.xlim(675, 707)
 
     # now interpolate the values within the band using the known values in the search areas around
     inter_ys_b = cubic_spline(x_vals, y_vals, wavelengths[o2b_indices])
     
-    # plot the constructed spline fit within the absorption band area
-    plt.plot(wavelengths[o2b_indices], inter_ys_b, color = 'green', label = 'Spline Fit')
-    plt.scatter(wavelengths[o2b_indices], inter_ys_b, color = 'green', label = 'Constructed Points')
+    if plot == True:
+        # plot the constructed spline fit within the absorption band area
+        plt.plot(wavelengths[o2b_indices], inter_ys_b, color = 'green', label = 'Spline Fit')
+        plt.scatter(wavelengths[o2b_indices], inter_ys_b, color = 'green', label = 'Constructed Points')
 
-    plt.xlabel('Wavelengths (nm)')
-    plt.ylabel('Spectral Value')
-    plt.title('O2B Band: iFLD Interpolation')
+        plt.xlabel('Wavelengths (nm)')
+        plt.ylabel('Spectral Value')
+        plt.title('O2B Band: iFLD Interpolation')
 
-    plt.legend()
-    plt.show()
+        plt.legend()
+        plt.show()
     
     # do the same for the O2A absorption band
     
@@ -398,25 +402,26 @@ def fit_NaN(spectrum, wavelengths):
     y_vals_right = spectrum[int(o2a_indices[-1]) + 1: int(o2a_indices[-1]) + search_size + 1]
     y_vals = np.append(y_vals_left, y_vals_right)
 
-    # plot points selected outside of band
-    plt.scatter(x_vals, y_vals, label = 'Known points')
-    plt.plot(wavelengths, spectrum, color = 'orange', label = 'Known Spectra')
-    #plt.ylim(0.3, 0.5)
-    plt.xlim(750, 775)
+    if plot == True:
+        # plot points selected outside of band
+        plt.scatter(x_vals, y_vals, label = 'Known points')
+        plt.plot(wavelengths, spectrum, color = 'orange', label = 'Known Spectra')
+        #plt.ylim(0.3, 0.5)
+        plt.xlim(750, 775)
 
     # now interpolate within the band
     inter_ys = cubic_spline(x_vals, y_vals, wavelengths[o2a_indices])
-    
-    # plot the interpolated values within the band
-    plt.plot(wavelengths[o2a_indices], inter_ys, color = 'green', label = 'Spline Fit')
-    plt.scatter(wavelengths[o2a_indices], inter_ys, color = 'green', label = 'Constructed Points')
+    if plot == True:
+        # plot the interpolated values within the band
+        plt.plot(wavelengths[o2a_indices], inter_ys, color = 'green', label = 'Spline Fit')
+        plt.scatter(wavelengths[o2a_indices], inter_ys, color = 'green', label = 'Constructed Points')
 
-    plt.xlabel('Wavelengths (nm)')
-    plt.ylabel('Spectral Value')
-    plt.title('O2A Band: iFLD Interpolation')
+        plt.xlabel('Wavelengths (nm)')
+        plt.ylabel('Spectral Value')
+        plt.title('O2A Band: iFLD Interpolation')
 
-    plt.legend()
-    plt.show()
+        plt.legend()
+        plt.show()
     
     # create smoothed array containing the interpolated values within the band
     
@@ -473,8 +478,8 @@ def iFLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
     e_spectra_nan[o2a_left_index:o2a_right_index] = np.nan
     
     # calculate the smoothed spectrums by applying a cubic spline fit within the NaN regions
-    r_smoothed = fit_NaN(r_app_nan, wavelengths)
-    e_smoothed = fit_NaN(e_spectra_nan, wavelengths)
+    r_smoothed = fit_NaN(r_app_nan, wavelengths, plot)
+    e_smoothed = fit_NaN(e_spectra_nan, wavelengths, plot)
     
     # now select the points inside and outside of the absorption band to calculate the fluorescence
     buffer_in = 5 #  range to look over within absorption feature

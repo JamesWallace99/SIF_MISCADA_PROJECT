@@ -342,5 +342,6 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace
     
     return(fluorescence_df)
 
-get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s7_5240_W.tif', method = 'simple')
+# test
+# get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s7_5240_W.tif', method = 'improved')
     
