@@ -1,0 +1,1 @@
+{"tif_image": "/Users/jameswallace/Desktop/Project/data/red/s21_6562_E.tif", "method": "improved", "e_spectra": "/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/SCOPE_simulations/final_irradiance_df.csv", "Wavelengths": "/Users/jameswallace/Desktop/Project/band_number_conversion.csv"}

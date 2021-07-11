@@ -278,7 +278,7 @@ Final function to calculate fluorscence values over the image and generate heat 
 --------------------------------------------
 '''
 
-def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv', bandnumber_pathname = '/Users/jameswallace/Desktop/Project/band_number_conversion.csv', plot = True, band = 'A'):
+def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname = '/Users/jameswallace/Desktop/Project/band_number_conversion.csv', plot = True, band = 'A'):
     """Retrieves the fluorescence values from a TIF image using a defined FLD method.
 
     Parameters
@@ -369,4 +369,4 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname = '/Users/jameswallace
     return(print('Fluorescence values succesfully saved!'))
 
 # test
-#get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/red/s21_6562_E.tif', method = 'improved')
+get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s6_5240_E.tif', method = 'improved', e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/SCOPE_simulations/final_irradiance_df.csv')
