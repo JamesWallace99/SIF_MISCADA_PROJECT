@@ -285,9 +285,9 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
     ----------
     tif_pathname : str (pathname)
         pathname of the target TIF image
-    method : str ('simple', 'three' or 'improved')
+    method : str ('standard', 'three' or 'improved')
         defines the FLD method to be used for SIF retrieval. 
-        Either: 'simple' (sFLD), 'three' (3FLD) or 'improved' (iFLD)
+        Either: 'standard' (sFLD), 'three' (3FLD) or 'improved' (iFLD)
     e_pathname : str (pathname)
         pathname of the csv output file from the Py6S irradiance simulation, by default '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv'
     bandnumber_pathname : str, optional
@@ -323,7 +323,7 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
     fluorescence_df = pd.DataFrame(data = d) # create the dataframe
     print('Calculating Fluorescence using ' + method + ' FLD method')
     # calculate the fluorescence
-    if method == 'simple':
+    if method == 'standard':
         # get the fluorscence using sFLD
         for i in range(len(r_app_df)):
             l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi # for each pixel get the upwelling radiance from the apparent reflectance
@@ -369,4 +369,4 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
     return(print('Fluorescence values succesfully saved!'))
 
 # test
-get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s6_5240_E.tif', method = 'improved', e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/SCOPE_simulations/final_irradiance_df.csv')
+get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s6_5240_E.tif', method = 'three', e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv', band = 'A')

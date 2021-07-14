@@ -1,1 +1,0 @@
-{"tif_image": "/Users/jameswallace/Desktop/Project/data/gold/s6_5240_E.tif", "method": "improved", "e_spectra": "/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/SCOPE_simulations/final_irradiance_df.csv", "Wavelengths": "/Users/jameswallace/Desktop/Project/band_number_conversion.csv"}
