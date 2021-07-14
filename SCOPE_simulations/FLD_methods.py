@@ -86,6 +86,27 @@ def resample_spectra(fwhm, spectra, wavelengths = np.arange(400, 2562)):
     resampled_spectra = resample(spectra) # resample the spectra
     return(resampled_spectra, bands2)
 
+
+def add_noise(snr, spectra):
+    """Add random Gaussian distributed noise with a mean value of zero 
+    and a standard deviation equal to the ratio between signal level and SNR.
+
+    Parameters
+    ----------
+    snr : int
+        Signal to Noise Ratio (SNR), peak value at full resolution of the sensor
+    spectra : np.array
+        np.array containing the spectra to be resampled with the additional noise
+    """
+    spectra_noise = np.copy(spectra)
+    for i in range(len(spectra)):
+        noise = np.random.normal(0, (spectra[i]) / snr)
+        spectra_noise[i] += noise
+    return(spectra_noise)
+
+
+
+
 def find_nearest(array, value):
     '''
     Returns the index of the item in the array closest to a given value
