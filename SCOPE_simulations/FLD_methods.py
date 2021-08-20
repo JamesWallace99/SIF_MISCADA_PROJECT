@@ -412,7 +412,7 @@ def fit_NaN(spectrum, wavelengths, plot):
     
     # do the same for the O2A absorption band
     
-    # get the NaN indices of the O2B band
+    # get the NaN indices of the O2A band
     o2a_indices = nan_indices[find_nearest(wavelengths[nan_indices], 697) + 1:]
 
     # now get the values around the null values that we will use for the spline fit
@@ -499,8 +499,8 @@ def iFLD(e_spectra, l_spectra, wavelengths, fwhm, band = 'A', plot=True):
     e_spectra_nan[o2a_left_index:o2a_right_index] = np.nan
     
     # calculate the smoothed spectrums by applying a cubic spline fit within the NaN regions
-    r_smoothed = fit_NaN(r_app_nan, wavelengths, plot)
-    e_smoothed = fit_NaN(e_spectra_nan, wavelengths, plot)
+    r_smoothed = fit_NaN(r_app_nan, wavelengths, plot=False)
+    e_smoothed = fit_NaN(e_spectra_nan, wavelengths, plot=False)
     
     # now select the points inside and outside of the absorption band to calculate the fluorescence
     buffer_in = 5 #  range to look over within absorption feature
