@@ -290,13 +290,22 @@ def calc_ndvi(r_800, r_672):
     return((r_800 - r_672) / (r_800 + r_672))
 
 def vegetation_thresholding(wavelengths, apparent_reflectance_dataframe):
+    """apply thresholds to the apparent refelectance spectra to ignore non-vegetation pixels
+
+    Parameters
+    ----------
+    wavelengths : array like
+        array containing instrument wavelength values
+    apparent_reflectance_dataframe : panda Dataframe
+        Dataframe containg apparent reflectance values for pixels, columns labelled with band number.
+    """
     
-    vegetation_index = FLD_methods.find_nearest(wavelengths, 780)
+    vegetation_index = FLD_methods.find_nearest(wavelengths, 780) # get index of band corresponding to 780 nm
     
+    # apply threshold
     apparent_reflectance_dataframe = apparent_reflectance_dataframe[apparent_reflectance_dataframe[str(vegetation_index)] > 0.2]
     
     # now compute ndvi and apply ndvi threshold
-    
     ndvi_index_one = FLD_methods.find_nearest(wavelengths, 800)
     ndvi_index_two = FLD_methods.find_nearest(wavelengths, 672.5)
     
