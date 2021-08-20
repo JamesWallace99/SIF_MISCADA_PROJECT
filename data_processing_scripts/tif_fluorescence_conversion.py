@@ -271,6 +271,54 @@ def utmToLatLng(easting, northing, zone = 60, northernHemisphere=True):
 
     return (latitude, longitude)
 
+'''
+--------------------------------------------
+Implement Thresholding Techniques for correcting SIF extraction
+--------------------------------------------
+'''
+
+def calc_ndvi(r_800, r_672):
+    """calculates ndvi SVI
+
+    Parameters
+    ----------
+    r_800 : float
+        apparent reflectance at 800 nm band
+    r_672 : float
+        apparent reflectance at 672 nm band
+    """
+    return((r_800 - r_672) / (r_800 + r_672))
+
+def vegetation_thresholding(wavelengths, apparent_reflectance_dataframe):
+    
+    vegetation_index = FLD_methods.find_nearest(wavelengths, 780)
+    
+    apparent_reflectance_dataframe = apparent_reflectance_dataframe[apparent_reflectance_dataframe[str(vegetation_index)] > 0.2]
+    
+    # now compute ndvi and apply ndvi threshold
+    
+    ndvi_index_one = FLD_methods.find_nearest(wavelengths, 800)
+    ndvi_index_two = FLD_methods.find_nearest(wavelengths, 672.5)
+    
+    apparent_reflectance_dataframe = apparent_reflectance_dataframe[calc_ndvi(apparent_reflectance_dataframe[str(ndvi_index_one)], apparent_reflectance_dataframe[str(ndvi_index_two)]) > 0.5]
+    
+    
+    return(apparent_reflectance_dataframe)
+
+def zero_sif_values(fluorescence_dataframe):
+    """Zeros the SIF values in the co-ordinate df by assuming non-fluorescing targets should have SIF = 0
+    
+
+    Parameters
+    ----------
+    fluorescence_dataframe : pandas.Dataframe
+        fluorescence df containing the SIF value at the column 'fluor'
+    """
+    
+    min_value = fluorescence_dataframe['fluor'].min()
+    fluorescence_dataframe['fluor'] = fluorescence_dataframe['fluor'] - min_value
+    
+    return(fluorescence_dataframe)
 
 '''
 --------------------------------------------
@@ -301,7 +349,7 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
     Outputs
     --------
     Saves a csv file containing the fluorescence values at each coordinate.
-    Saves a  txt file containing the parameters of the simulation.
+    Saves a  txt file containing the parameters of the atmosphere simulation.
     Presents graphs showing a heatmap of the fluorescence values and histogram of the distribution.
     """
     # convert tif image to spectral csv file
@@ -310,6 +358,7 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
     output_name = 'temp_spectral_' + timestampStr + '.csv'
     tif_to_csv(tif_pathname, output_name) 
     print('Converting CSV files')
+    
     # convert csv files contianing spectra and wavelength conversions to dataframes
     r_app_df = spectral_csv_to_df(output_name) # convert the spectral csv to dataframe
     wavelengths_df = bandnumber_to_wavelength(bandnumber_pathname) # convert wavelengths dataframe
@@ -317,6 +366,8 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
     # convert e_spectra and wavelengths to np.arrays
     e_spectra = py6s_csv_to_array(e_pathname) # convert irradiance csv to np.array
     wavelengths = np.asarray(wavelengths_df['Wavelength']) # get np.array of wavelength values
+    
+    vegetation_thresholding(wavelengths, r_app_df) # apply the thresholding methods to remove any non-target vegetation
     
     # initiate df for fluorescence values and co-ordinates
     d = {'x': np.asarray(r_app_df['x']), 'y': np.asarray(r_app_df['y']), 'fluor': np.empty(len(r_app_df))} # get the data
@@ -338,6 +389,9 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
         for i in range(len(r_app_df)):
             l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi # for each pixel get the upwelling radiance from the apparent reflectance
             fluorescence_df['fluor'][i] = FLD_methods.iFLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = band, plot = False)
+    
+    
+    fluorescence_df = zero_sif_values(fluorescence_df) # apply zeroing method to fluorescence df
     
     # generate heatmap plot of fluorescence intensity
     if plot == True:
