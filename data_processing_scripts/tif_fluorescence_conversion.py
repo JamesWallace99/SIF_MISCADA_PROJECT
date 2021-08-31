@@ -303,16 +303,16 @@ def vegetation_thresholding(wavelengths, apparent_reflectance_dataframe):
     vegetation_index = FLD_methods.find_nearest(wavelengths, 780) # get index of band corresponding to 780 nm
     
     # apply threshold
-    apparent_reflectance_dataframe = apparent_reflectance_dataframe[apparent_reflectance_dataframe[str(vegetation_index)] > 0.2]
+    masked_df = apparent_reflectance_dataframe[apparent_reflectance_dataframe[str(vegetation_index)] > 0.2]
     
     # now compute ndvi and apply ndvi threshold
     ndvi_index_one = FLD_methods.find_nearest(wavelengths, 800)
     ndvi_index_two = FLD_methods.find_nearest(wavelengths, 672.5)
     
-    apparent_reflectance_dataframe = apparent_reflectance_dataframe[calc_ndvi(apparent_reflectance_dataframe[str(ndvi_index_one)], apparent_reflectance_dataframe[str(ndvi_index_two)]) > 0.5]
+    masked_df = masked_df[calc_ndvi(masked_df[str(ndvi_index_one)], masked_df[str(ndvi_index_two)]) > 0.5]
     
     
-    return(apparent_reflectance_dataframe)
+    return(masked_df)
 
 def zero_sif_values(fluorescence_dataframe):
     """Zeros the SIF values in the co-ordinate df by assuming non-fluorescing targets should have SIF = 0
@@ -376,7 +376,8 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
     e_spectra = py6s_csv_to_array(e_pathname) # convert irradiance csv to np.array
     wavelengths = np.asarray(wavelengths_df['Wavelength']) # get np.array of wavelength values
     
-    vegetation_thresholding(wavelengths, r_app_df) # apply the thresholding methods to remove any non-target vegetation
+    r_app_df = vegetation_thresholding(wavelengths, r_app_df) # apply the thresholding methods to remove any non-target vegetation
+    
     
     # initiate df for fluorescence values and co-ordinates
     d = {'x': np.asarray(r_app_df['x']), 'y': np.asarray(r_app_df['y']), 'fluor': np.empty(len(r_app_df))} # get the data
@@ -399,8 +400,10 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
             l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi # for each pixel get the upwelling radiance from the apparent reflectance
             fluorescence_df['fluor'][i] = FLD_methods.iFLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = band, plot = False)
     
+    #number = int(len(fluorescence_df) * 0.95) # get the number representing x%
     
-    fluorescence_df = zero_sif_values(fluorescence_df) # apply zeroing method to fluorescence df
+    #fluorescence_df = fluorescence_df.nlargest(number, 'fluor') # take the top x% of the SI  values
+    #fluorescence_df = zero_sif_values(fluorescence_df) # apply zeroing method to fluorescence df
     
     # generate heatmap plot of fluorescence intensity
     if plot == True:
@@ -426,10 +429,14 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
     
     fluorescence_df.to_csv(csv_output_name) # write fluorescence values to csv
     
+    r_app_df.to_csv('r_app.csv')
+    
     with open(options_name, 'w') as file:
         file.write(json.dumps(options)) # write input parameters to txt file
     
     return(print('Fluorescence values succesfully saved!'))
 
 # test
-get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s6_5240_E.tif', method = 'three', e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv', band = 'A')
+
+
+get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/red/s22_6562_W.tif', method = 'three', e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv', band = 'A')
