@@ -1,0 +1,4 @@
+simulation_number,year,DoY,Photosynthesis,Electron_transport,NPQ_energy,NPQ_photon,canopy_level_FQE,LST,emis
+#,,,umol m-2 s-1,umol m-2 s-1,W m-2,umol m-2 s-1,umol photons (umol photons)-1,K,
+1,0,0,7.167596e+00,6.847526e+01,2.979434e+01,1.418495e+02,4.843947e-02,3.067828e+02,9.651364e-01
+2,0,0,6.797803e+00,6.817356e+01,3.541761e+01,1.690950e+02,4.931096e-02,3.058735e+02,9.654230e-01

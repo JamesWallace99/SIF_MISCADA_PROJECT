@@ -1,0 +1,4 @@
+simulation_number,year,DoY,ShortIn,LongIn,HemisOutShort,HemisOutLong,Lo,Lot,Lote
+#,,,W m-2,W m-2,W m-2,W m-2,W m-2 sr-1,W m-2 sr-1,W m-2 sr-1
+1,0,0,600,300,7.669506e+01,4.620825e+02,2.235989e+01,1.971325e-01,1.622920e+02
+2,0,0,600,300,9.369625e+01,4.726612e+02,1.943536e+01,1.853001e-01,1.578887e+02
