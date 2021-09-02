@@ -400,23 +400,34 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
             l_spectra = np.asarray(r_app_df.iloc[i][2:]) * e_spectra / np.pi # for each pixel get the upwelling radiance from the apparent reflectance
             fluorescence_df['fluor'][i] = FLD_methods.iFLD(e_spectra / np.pi, l_spectra, wavelengths, fwhm = 3.5, band = band, plot = False)
     
-    #number = int(len(fluorescence_df) * 0.95) # get the number representing x%
+    number = int(len(fluorescence_df) * 0.90) # get the number representing x%
     
-    #fluorescence_df = fluorescence_df.nlargest(number, 'fluor') # take the top x% of the SI  values
-    #fluorescence_df = zero_sif_values(fluorescence_df) # apply zeroing method to fluorescence df
+    fluorescence_df = fluorescence_df.nlargest(number, 'fluor') # take the top x% of the SI  values
+    fluorescence_df = zero_sif_values(fluorescence_df) # apply zeroing method to fluorescence df
     
     # generate heatmap plot of fluorescence intensity
     if plot == True:
-        plt.scatter(fluorescence_df['x'], fluorescence_df['y'], c=fluorescence_df['fluor'], s = 0.5, marker = 'h')
+        plt.figure(figsize=(6,4), dpi = 300)
+        plt.scatter(fluorescence_df['x'], fluorescence_df['y'], c=fluorescence_df['fluor'], s = 0.5, marker = 'h', cmap = 'turbo', label = r'O$_2$A SIF')
         plt.colorbar()
-        plt.title(tif_pathname)
-        plt.xlabel('X co-ord (UTM60)')
-        plt.ylabel('Y co-ord (UTM60)')
+        #plt.title(tif_pathname)
+        plt.xlabel('Latitude')
+        plt.ylabel('Longitude')
+        plt.tick_params(
+            axis='both',          # changes apply to the x-axis
+            which='both',      # both major and minor ticks are affected
+            bottom=False,      # ticks along the bottom edge are off
+            top=False,         # ticks along the top edge are off
+            labelbottom=False,
+            left=False,
+            labelleft=False) # labels along the bottom edge are off
+        plt.legend()
         plt.show()
-        plt.hist(fluorescence_df['fluor'], bins = 50)
-        plt.xlabel('SIF')
+        plt.figure(figsize=(6,4), dpi = 300)
+        plt.hist(fluorescence_df['fluor'], bins = 100)
+        plt.xlabel(r'Retrieved O$_2$A SIF ($mW m^{-2}sr^{-1}nm^{-1}$)')
         plt.ylabel('Frequency')
-        plt.title(tif_pathname)
+        #plt.title(tif_pathname)
         plt.show()
     os.remove(output_name)
     
@@ -439,4 +450,4 @@ def get_tif_fluorescence(tif_pathname, method, e_pathname, bandnumber_pathname =
 # test
 
 
-get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/red/s22_6562_W.tif', method = 'three', e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv', band = 'A')
+get_tif_fluorescence('/Users/jameswallace/Desktop/Project/data/gold/s6_5240_E.tif', method = 'three', e_pathname = '/Users/jameswallace/Desktop/SIF_MISCADA_PROJECT/py6s_generate_irradiance/17_06_2021_13:18_irradiance.csv', band = 'A')
